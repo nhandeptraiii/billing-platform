@@ -1,0 +1,17 @@
+package vn.viettel.khdn.billing_platform.config;
+
+import org.springframework.context.annotation.Configuration;
+import org.springframework.web.servlet.config.annotation.ResourceHandlerRegistry;
+import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
+
+@Configuration
+public class WebMvcConfig implements WebMvcConfigurer {
+
+    @Override
+    public void addResourceHandlers(ResourceHandlerRegistry registry) {
+        // Serve file upload (ảnh QR, v.v.) qua URL /uploads/**
+        String uploadPath = System.getProperty("user.dir") + "/uploads/";
+        registry.addResourceHandler("/uploads/**")
+                .addResourceLocations("file:" + uploadPath);
+    }
+}
