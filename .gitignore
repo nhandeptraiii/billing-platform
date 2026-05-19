@@ -35,3 +35,12 @@ out/
 
 ### VS Code ###
 .vscode/
+
+### Sensitive Config — KHÔNG commit các file chứa secret/password ###
+src/main/resources/application-dev.properties
+src/main/resources/application-prod.properties
+# Chỉ commit file application.properties (chỉ chứa spring.profiles.active)
+# và application.properties.example (file mẫu không có secret)
+
+### Upload files ###
+uploads/
