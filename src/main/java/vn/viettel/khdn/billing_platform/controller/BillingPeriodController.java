@@ -1,0 +1,82 @@
+package vn.viettel.khdn.billing_platform.controller;
+
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
+
+import jakarta.persistence.EntityNotFoundException;
+import vn.viettel.khdn.billing_platform.model.BillingPeriod;
+import vn.viettel.khdn.billing_platform.model.User;
+import vn.viettel.khdn.billing_platform.model.dto.ImportResultDTO;
+import vn.viettel.khdn.billing_platform.model.enums.BillingPeriodStatusEnum;
+import vn.viettel.khdn.billing_platform.repository.BillingPeriodRepository;
+import vn.viettel.khdn.billing_platform.repository.UserRepository;
+import vn.viettel.khdn.billing_platform.service.ImportService;
+import vn.viettel.khdn.billing_platform.util.SecurityUtil;
+
+import java.util.List;
+
+@RestController
+@RequestMapping("/billing-periods")
+public class BillingPeriodController {
+
+    private final BillingPeriodRepository billingPeriodRepository;
+    private final ImportService importService;
+    private final UserRepository userRepository;
+
+    public BillingPeriodController(BillingPeriodRepository billingPeriodRepository,
+                                   ImportService importService,
+                                   UserRepository userRepository) {
+        this.billingPeriodRepository = billingPeriodRepository;
+        this.importService = importService;
+        this.userRepository = userRepository;
+    }
+
+    private User getCurrentUser() {
+        String email = SecurityUtil.getCurrentUserLogin()
+            .orElseThrow(() -> new EntityNotFoundException("Chưa đăng nhập"));
+        return userRepository.findByEmail(email)
+            .orElseThrow(() -> new EntityNotFoundException("Không tìm thấy người dùng"));
+    }
+
+    /** GET /billing-periods — Danh sách tất cả kỳ */
+    @GetMapping
+    public ResponseEntity<List<BillingPeriod>> getAll() {
+        return ResponseEntity.ok(billingPeriodRepository.findAll());
+    }
+
+    /** GET /billing-periods/{id} */
+    @GetMapping("/{id}")
+    public ResponseEntity<BillingPeriod> getById(@PathVariable Long id) {
+        return ResponseEntity.ok(
+            billingPeriodRepository.findById(id)
+                .orElseThrow(() -> new EntityNotFoundException("Không tìm thấy kỳ ID: " + id)));
+    }
+
+    /**
+     * POST /billing-periods/import — Import đầu kỳ (Manager only)
+     * File: mau_import_dau_ky.xlsx
+     */
+    @PostMapping("/import")
+    @PreAuthorize("hasAuthority('MANAGER')")
+    public ResponseEntity<ImportResultDTO> importStartOfPeriod(
+            @RequestParam("file") MultipartFile file) {
+        User currentUser = getCurrentUser();
+        return ResponseEntity.ok(importService.importStartOfPeriod(file, currentUser));
+    }
+
+    /** PATCH /billing-periods/{id}/close — Đóng kỳ (Manager only) */
+    @PatchMapping("/{id}/close")
+    @PreAuthorize("hasAuthority('MANAGER')")
+    public ResponseEntity<BillingPeriod> closePeriod(@PathVariable Long id) {
+        BillingPeriod period = billingPeriodRepository.findById(id)
+            .orElseThrow(() -> new EntityNotFoundException("Không tìm thấy kỳ ID: " + id));
+
+        if (period.getStatus() == BillingPeriodStatusEnum.CLOSED) {
+            throw new IllegalStateException("Kỳ này đã được đóng");
+        }
+        period.setStatus(BillingPeriodStatusEnum.CLOSED);
+        return ResponseEntity.ok(billingPeriodRepository.save(period));
+    }
+}
