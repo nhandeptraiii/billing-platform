@@ -10,6 +10,7 @@ import jakarta.validation.Valid;
 import vn.viettel.khdn.billing_platform.model.User;
 import vn.viettel.khdn.billing_platform.model.dto.ReqLoginDTO;
 import vn.viettel.khdn.billing_platform.model.dto.ResLoginDTO;
+import vn.viettel.khdn.billing_platform.model.dto.ResUserDTO;
 import vn.viettel.khdn.billing_platform.service.AuthService;
 import vn.viettel.khdn.billing_platform.util.SecurityUtil;
 
@@ -40,9 +41,20 @@ public class AuthController {
     }
 
     @GetMapping("/account")
-    public ResponseEntity<User> getAccount() {
+    public ResponseEntity<ResUserDTO> getAccount() {
         String email = SecurityUtil.getCurrentUserLogin()
             .orElseThrow(() -> new jakarta.persistence.EntityNotFoundException("Chưa đăng nhập"));
-        return ResponseEntity.ok(authService.getCurrentUser(email));
+        User user = authService.getCurrentUser(email);
+        ResUserDTO res = new ResUserDTO(
+            user.getId(),
+            user.getFullName(),
+            user.getEmail(),
+            user.getPhone(),
+            user.getStatus(),
+            user.getRole(),
+            user.getCreatedAt(),
+            user.getUpdatedAt()
+        );
+        return ResponseEntity.ok(res);
     }
 }
