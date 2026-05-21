@@ -3,7 +3,6 @@ package vn.viettel.khdn.billing_platform.controller;
 import java.time.Instant;
 
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.*;
 
 import jakarta.validation.Valid;
@@ -43,18 +42,17 @@ public class AuthController {
     @GetMapping("/account")
     public ResponseEntity<ResUserDTO> getAccount() {
         String email = SecurityUtil.getCurrentUserLogin()
-            .orElseThrow(() -> new jakarta.persistence.EntityNotFoundException("Chưa đăng nhập"));
+                .orElseThrow(() -> new jakarta.persistence.EntityNotFoundException("Chưa đăng nhập"));
         User user = authService.getCurrentUser(email);
         ResUserDTO res = new ResUserDTO(
-            user.getId(),
-            user.getFullName(),
-            user.getEmail(),
-            user.getPhone(),
-            user.getStatus(),
-            user.getRole(),
-            user.getCreatedAt(),
-            user.getUpdatedAt()
-        );
+                user.getId(),
+                user.getFullName(),
+                user.getEmail(),
+                user.getPhone(),
+                user.getStatus(),
+                user.getRole(),
+                user.getCreatedAt(),
+                user.getUpdatedAt());
         return ResponseEntity.ok(res);
     }
 }

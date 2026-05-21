@@ -3,7 +3,6 @@ package vn.viettel.khdn.billing_platform.service;
 import java.time.Instant;
 
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
-import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
@@ -27,9 +26,9 @@ public class AuthService {
     private final RevokedTokenRepository revokedTokenRepository;
 
     public AuthService(AuthenticationManager authenticationManager,
-                       SecurityUtil securityUtil,
-                       UserRepository userRepository,
-                       RevokedTokenRepository revokedTokenRepository) {
+            SecurityUtil securityUtil,
+            UserRepository userRepository,
+            RevokedTokenRepository revokedTokenRepository) {
         this.authenticationManager = authenticationManager;
         this.securityUtil = securityUtil;
         this.userRepository = userRepository;
@@ -39,27 +38,25 @@ public class AuthService {
     public ResLoginDTO login(ReqLoginDTO req) {
         // Xác thực email + password
         Authentication authentication = authenticationManager.authenticate(
-            new UsernamePasswordAuthenticationToken(req.email(), req.password())
-        );
+                new UsernamePasswordAuthenticationToken(req.email(), req.password()));
 
         User user = userRepository.findByEmail(req.email())
-            .orElseThrow(() -> new UsernameNotFoundException("Không tìm thấy người dùng"));
+                .orElseThrow(() -> new UsernameNotFoundException("Không tìm thấy người dùng"));
 
         if (!"ACTIVE".equals(user.getStatus())) {
             throw new org.springframework.security.authentication.DisabledException(
-                "Tài khoản đã bị khóa");
+                    "Tài khoản đã bị khóa");
         }
 
         String token = securityUtil.createToken(authentication);
 
         return new ResLoginDTO(
-            user.getId(),
-            user.getFullName(),
-            user.getEmail(),
-            user.getPhone(),
-            user.getRole(),
-            token
-        );
+                user.getId(),
+                user.getFullName(),
+                user.getEmail(),
+                user.getPhone(),
+                user.getRole(),
+                token);
     }
 
     public void logout(String tokenId, String email, Instant expiresAt) {
@@ -73,6 +70,6 @@ public class AuthService {
 
     public User getCurrentUser(String email) {
         return userRepository.findByEmail(email)
-            .orElseThrow(() -> new EntityNotFoundException("Không tìm thấy người dùng: " + email));
+                .orElseThrow(() -> new EntityNotFoundException("Không tìm thấy người dùng: " + email));
     }
 }
