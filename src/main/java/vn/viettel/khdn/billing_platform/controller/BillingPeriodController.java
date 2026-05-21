@@ -1,5 +1,9 @@
 package vn.viettel.khdn.billing_platform.controller;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
@@ -40,10 +44,18 @@ public class BillingPeriodController {
             .orElseThrow(() -> new EntityNotFoundException("Không tìm thấy người dùng"));
     }
 
-    /** GET /billing-periods — Danh sách tất cả kỳ */
+    /** GET /billing-periods — Danh sách tất cả kỳ (Hỗ trợ phân trang) */
     @GetMapping
-    public ResponseEntity<List<BillingPeriod>> getAll() {
-        return ResponseEntity.ok(billingPeriodRepository.findAll());
+    public ResponseEntity<Page<BillingPeriod>> getAll(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size) {
+        int safeSize = Math.min(Math.max(size, 1), 50);
+        Pageable pageable = PageRequest.of(
+            Math.max(page, 0),
+            safeSize,
+            Sort.by(Sort.Order.desc("year"), Sort.Order.desc("month"))
+        );
+        return ResponseEntity.ok(billingPeriodRepository.findAll(pageable));
     }
 
     /** GET /billing-periods/{id} */

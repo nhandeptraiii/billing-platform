@@ -117,17 +117,8 @@ public class CustomerRecordService {
     /**
      * Bước 5: Lấy danh sách cảnh báo (DA_IN_BILL chưa gạch nợ + INCONSISTENT)
      */
-    public List<CustomerBillingRecord> getWarnings(Long periodId) {
-        List<CustomerBillingRecord> unprocessed =
-            recordRepository.findByBillingPeriodIdAndStatus(
-                periodId, BillingRecordStatusEnum.DA_IN_BILL);
-
-        List<CustomerBillingRecord> inconsistent =
-            recordRepository.findByBillingPeriodIdAndSyncWarning(
-                periodId, SyncWarningEnum.INCONSISTENT);
-
-        unprocessed.addAll(inconsistent);
-        return unprocessed;
+    public Page<CustomerBillingRecord> getWarnings(Long periodId, Pageable pageable) {
+        return recordRepository.findWarningsByPeriod(periodId, pageable);
     }
 
     /**

@@ -128,13 +128,19 @@ public class CustomerRecordController {
     }
 
     /**
-     * GET /records/warnings?periodId=...
-     * Danh sách cảnh báo: DA_IN_BILL chưa gạch nợ + INCONSISTENT
+     * GET /records/warnings
+     * Danh sách cảnh báo: DA_IN_BILL chưa gạch nợ + INCONSISTENT (Hỗ trợ phân trang)
      */
     @GetMapping("/warnings")
-    public ResponseEntity<List<ResCustomerRecordDTO>> getWarnings(
-            @RequestParam Long periodId) {
-        List<CustomerBillingRecord> warnings = recordService.getWarnings(periodId);
-        return ResponseEntity.ok(warnings.stream().map(recordService::toDTO).toList());
+    public ResponseEntity<Page<ResCustomerRecordDTO>> getWarnings(
+            @RequestParam Long periodId,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size) {
+        int safeSize = Math.min(Math.max(size, 1), 50);
+        org.springframework.data.domain.Pageable pageable = org.springframework.data.domain.PageRequest.of(
+            Math.max(page, 0), safeSize, Sort.by(Sort.Order.desc("updatedAt"))
+        );
+        Page<CustomerBillingRecord> warnings = recordService.getWarnings(periodId, pageable);
+        return ResponseEntity.ok(warnings.map(recordService::toDTO));
     }
 }

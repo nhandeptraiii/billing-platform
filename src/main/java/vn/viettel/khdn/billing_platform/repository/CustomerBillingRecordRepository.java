@@ -31,6 +31,15 @@ public interface CustomerBillingRecordRepository extends JpaRepository<CustomerB
     List<CustomerBillingRecord> findByBillingPeriodIdAndSyncWarning(
             Long periodId, SyncWarningEnum syncWarning);
 
+    @Query("""
+        SELECT r FROM CustomerBillingRecord r
+        WHERE r.billingPeriod.id = :periodId
+          AND (r.status = 'DA_IN_BILL' OR r.syncWarning = 'INCONSISTENT')
+        """)
+    Page<CustomerBillingRecord> findWarningsByPeriod(
+            @Param("periodId") Long periodId,
+            Pageable pageable);
+
     // Tìm kiếm full-text + filter đa chiều (MANAGER xem tất cả)
     @Query("""
         SELECT r FROM CustomerBillingRecord r
