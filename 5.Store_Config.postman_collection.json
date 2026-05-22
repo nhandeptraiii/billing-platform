@@ -1,0 +1,82 @@
+{
+  "info": {
+    "name": "5. Store Config (Cấu Hình Cửa Hàng)",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:8080" },
+    { "key": "managerToken", "value": "" },
+    { "key": "consultantToken", "value": "" }
+  ],
+  "item": [
+    {
+      "name": "TC-SC-01: Lấy cấu hình hiện tại",
+      "event": [{ "listen": "test", "script": { "exec": [
+        "pm.test('Status 200 OK', () => pm.response.to.have.status(200));"
+      ] } }],
+      "request": {
+        "method": "GET",
+        "header": [{ "key": "Authorization", "value": "Bearer {{managerToken}}" }],
+        "url": { "raw": "{{baseUrl}}/store-config", "host": ["{{baseUrl}}"], "path": ["store-config"] }
+      }
+    },
+    {
+      "name": "TC-SC-02: Cập nhật cấu hình (MANAGER)",
+      "event": [{ "listen": "test", "script": { "exec": [
+        "pm.test('Status 200 — có updatedBy', () => { pm.response.to.have.status(200); pm.expect(pm.response.json()).to.have.property('updatedBy'); });"
+      ] } }],
+      "request": {
+        "method": "PUT",
+        "header": [{ "key": "Authorization", "value": "Bearer {{managerToken}}" },{ "key": "Content-Type", "value": "application/json" }],
+        "body": { "mode": "raw", "raw": "{\n  \"storeName\": \"Điểm thu cước Viettel Q1\",\n  \"address\": \"123 Nguyễn Trãi, Q1, TP.HCM\",\n  \"hotline\": \"1800 8000\",\n  \"adsText\": \"Viettel - Theo dòng lịch sử\"\n}" },
+        "url": { "raw": "{{baseUrl}}/store-config", "host": ["{{baseUrl}}"], "path": ["store-config"] }
+      }
+    },
+    {
+      "name": "TC-SC-03: CONSULTANT cập nhật config bị từ chối",
+      "event": [{ "listen": "test", "script": { "exec": [
+        "pm.test('Status 403 Forbidden', () => pm.response.to.have.status(403));"
+      ] } }],
+      "request": {
+        "method": "PUT",
+        "header": [{ "key": "Authorization", "value": "Bearer {{consultantToken}}" },{ "key": "Content-Type", "value": "application/json" }],
+        "body": { "mode": "raw", "raw": "{\n  \"storeName\": \"Hack config\"\n}" },
+        "url": { "raw": "{{baseUrl}}/store-config", "host": ["{{baseUrl}}"], "path": ["store-config"] }
+      }
+    },
+    {
+      "name": "TC-SC-04: Upload ảnh QR (MANAGER)",
+      "event": [{ "listen": "test", "script": { "exec": [
+        "pm.test('Status 200 — có qrImagePath', () => { pm.response.to.have.status(200); pm.expect(pm.response.json()).to.have.property('qrImagePath'); });"
+      ] } }],
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Authorization", "value": "Bearer {{managerToken}}" }],
+        "body": { "mode": "formdata", "formdata": [{ "key": "file", "type": "file", "src": "", "description": "⚠️ Chọn file .png hoặc .jpg dưới 5MB" }] },
+        "url": { "raw": "{{baseUrl}}/store-config/qr", "host": ["{{baseUrl}}"], "path": ["store-config","qr"] }
+      }
+    },
+    {
+      "name": "TC-SC-05: Upload ảnh QR vượt 5MB",
+      "event": [{ "listen": "test", "script": { "exec": [
+        "pm.test('Status 400 — file quá lớn', () => pm.response.to.have.status(400));"
+      ] } }],
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Authorization", "value": "Bearer {{managerToken}}" }],
+        "body": { "mode": "formdata", "formdata": [{ "key": "file", "type": "file", "src": "", "description": "⚠️ Chọn file ảnh > 5MB" }] },
+        "url": { "raw": "{{baseUrl}}/store-config/qr", "host": ["{{baseUrl}}"], "path": ["store-config","qr"] }
+      }
+    },
+    {
+      "name": "TC-SC-06: Truy cập file ảnh đã upload (public, không cần token)",
+      "event": [{ "listen": "test", "script": { "exec": [
+        "pm.test('Status 200 — trả về file ảnh', () => pm.response.to.have.status(200));"
+      ] } }],
+      "request": {
+        "method": "GET",
+        "url": { "raw": "{{baseUrl}}/uploads/qr.png", "host": ["{{baseUrl}}"], "path": ["uploads","qr.png"] }
+      }
+    }
+  ]
+}
