@@ -149,6 +149,7 @@ public class CustomerRecordService {
             record.getSubscriberNumber(),
             record.getFullAddress(),
             record.getBillingPeriod() != null ? record.getBillingPeriod().getName() : "",
+            record.getServiceType(),
             record.getAmountDue(),
             record.getCollectedAmount(),
             record.getCollectedAt(),

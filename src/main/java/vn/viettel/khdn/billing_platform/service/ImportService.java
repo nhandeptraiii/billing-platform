@@ -83,7 +83,7 @@ public class ImportService {
                     String consultantEmail = getCellString(row, 8);   // Email nhân viên
                     // Col 9: Username quản lý — bỏ qua
                     String billingPeriodRaw = getCellString(row, 10); // Kỳ TT: MM/YYYY
-                    // Col 11: Loại DV — bỏ qua (đã có trong BillingPeriod)
+                    String serviceType      = getCellString(row, 11); // Loại dịch vụ
                     // Col 12: Nội dung QC — bỏ qua
 
                     // Validate bắt buộc
@@ -142,6 +142,7 @@ public class ImportService {
                     record.setPhoneNumber(phoneNumber);
                     record.setFullAddress(fullAddress);
                     record.setAmountDue(amount != null ? amount : BigDecimal.ZERO);
+                    record.setServiceType(serviceType.isBlank() ? null : serviceType);
                     record.setAssignedConsultant(consultant);
                     record.setStatus(BillingRecordStatusEnum.CHUA_THU);
                     record.setSyncWarning(SyncWarningEnum.NONE);

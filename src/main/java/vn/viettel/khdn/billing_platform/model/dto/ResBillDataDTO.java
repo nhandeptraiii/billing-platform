@@ -20,8 +20,9 @@ public record ResBillDataDTO(
     String subscriberNumber,
     String fullAddress,
 
-    // Kỳ thanh toán
+    // Kỳ thanh toán & dịch vụ
     String billingPeriodName,
+    String serviceType,         // Loại dịch vụ: CƯỚC VIỄN THÔNG / KỲ HÒA ĐƠN...
 
     // Thông tin thu tiền
     BigDecimal amountDue,
@@ -29,3 +30,4 @@ public record ResBillDataDTO(
     Instant collectedAt,        // Ngày thu
     String collectedByName      // Người thu
 ) {}
+

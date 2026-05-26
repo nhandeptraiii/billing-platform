@@ -66,6 +66,9 @@ public class CustomerBillingRecord {
     @Column(length = 500)
     private String fullAddress;         // Địa chỉ đầy đủ
 
+    @Column(length = 200)
+    private String serviceType;         // Loại dịch vụ (VD: CƯỚC VIỄN THÔNG, KỲ HÒA ĐƠN)
+
     // ---- Phân công ----
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "assigned_consultant_id")
