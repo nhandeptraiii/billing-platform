@@ -80,7 +80,7 @@ public class ImportService {
                     String fullAddress     = getCellString(row, 5);   // Địa chỉ
                     BigDecimal amount      = getCellBigDecimal(row, 6); // Tổng cước
                     // Col 7: Hình thức TT — bỏ qua
-                    String consultantEmail = getCellString(row, 8);   // Email nhân viên
+                    String consultantUsername = getCellString(row, 8);   // Username nhân viên
                     // Col 9: Username quản lý — bỏ qua
                     String billingPeriodRaw = getCellString(row, 10); // Kỳ TT: MM/YYYY
                     String serviceType      = getCellString(row, 11); // Loại dịch vụ
@@ -121,14 +121,14 @@ public class ImportService {
                             return billingPeriodRepository.save(bp);
                         });
 
-                    // Tìm tư vấn viên theo email
+                    // Tìm tư vấn viên theo username
                     User consultant = null;
-                    if (!consultantEmail.isBlank()) {
-                        consultant = userRepository.findByEmail(consultantEmail).orElse(null);
+                    if (!consultantUsername.isBlank()) {
+                        consultant = userRepository.findByUsername(consultantUsername).orElse(null);
                         if (consultant == null) {
                             errors.add(new ImportResultDTO.ImportErrorRow(i + 1,
-                                "Không tìm thấy nhân viên với email: " + consultantEmail
-                                + ". Hãy kiểm tra lại email trong cột I."));
+                                "Không tìm thấy nhân viên với username: " + consultantUsername
+                                + ". Hãy kiểm tra lại mã nhân viên (username) trong cột I."));
                             continue;
                         }
                     }

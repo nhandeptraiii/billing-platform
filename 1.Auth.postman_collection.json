@@ -15,14 +15,14 @@
         "pm.test('Status 200 OK', () => pm.response.to.have.status(200));",
         "const json = pm.response.json();",
         "pm.test('Có accessToken', () => pm.expect(json).to.have.property('accessToken'));",
-        "pm.test('Có user info', () => pm.expect(json.user).to.have.keys(['id','email','fullName','role']));",
+        "pm.test('Có user info', () => pm.expect(json.user).to.have.keys(['id','username','fullName','role']));",
         "if (json.accessToken) pm.collectionVariables.set('managerToken', json.accessToken);"
       ] } }],
       "request": {
         "method": "POST",
         "header": [{ "key": "Content-Type", "value": "application/json" }],
-        "body": { "mode": "raw", "raw": "{\n  \"email\": \"admin@billing.vn\",\n  \"password\": \"123456\"\n}" },
-        "url": { "raw": "{{baseUrl}}/login", "host": ["{{baseUrl}}"], "path": ["login"] }
+        "body": { "mode": "raw", "raw": "{\n  \"username\": \"nhanvien01\",\n  \"password\": \"123456\"\n}" },
+        "url": { "raw": "{{baseUrl}}/auth/login", "host": ["{{baseUrl}}"], "path": ["login"] }
       }
     },
     {
@@ -33,8 +33,8 @@
       "request": {
         "method": "POST",
         "header": [{ "key": "Content-Type", "value": "application/json" }],
-        "body": { "mode": "raw", "raw": "{\n  \"email\": \"admin@billing.vn\",\n  \"password\": \"satmatkau\"\n}" },
-        "url": { "raw": "{{baseUrl}}/login", "host": ["{{baseUrl}}"], "path": ["login"] }
+        "body": { "mode": "raw", "raw": "{\n  \"username\": \"nhanvien01\",\n  \"password\": \"satmatkau\"\n}" },
+        "url": { "raw": "{{baseUrl}}/auth/login", "host": ["{{baseUrl}}"], "path": ["login"] }
       }
     },
     {
@@ -45,20 +45,20 @@
       "request": {
         "method": "POST",
         "header": [{ "key": "Content-Type", "value": "application/json" }],
-        "body": { "mode": "raw", "raw": "{\n  \"email\": \"khongtontai@billing.vn\",\n  \"password\": \"123456\"\n}" },
-        "url": { "raw": "{{baseUrl}}/login", "host": ["{{baseUrl}}"], "path": ["login"] }
+        "body": { "mode": "raw", "raw": "{\n  \"username\": \"khongtontai\",\n  \"password\": \"123456\"\n}" },
+        "url": { "raw": "{{baseUrl}}/auth/login", "host": ["{{baseUrl}}"], "path": ["login"] }
       }
     },
     {
       "name": "TC-AUTH-04: Lấy thông tin tài khoản hiện tại",
       "event": [{ "listen": "test", "script": { "exec": [
         "pm.test('Status 200 OK', () => pm.response.to.have.status(200));",
-        "pm.test('Trả về thông tin user', () => pm.expect(pm.response.json()).to.have.property('email'));"
+        "pm.test('Trả về thông tin user', () => pm.expect(pm.response.json()).to.have.property('username'));"
       ] } }],
       "request": {
         "method": "GET",
         "header": [{ "key": "Authorization", "value": "Bearer {{managerToken}}" }],
-        "url": { "raw": "{{baseUrl}}/account", "host": ["{{baseUrl}}"], "path": ["account"] }
+        "url": { "raw": "{{baseUrl}}/auth/account", "host": ["{{baseUrl}}"], "path": ["account"] }
       }
     },
     {
@@ -69,7 +69,7 @@
       "request": {
         "method": "POST",
         "header": [{ "key": "Authorization", "value": "Bearer {{managerToken}}" }],
-        "url": { "raw": "{{baseUrl}}/logout", "host": ["{{baseUrl}}"], "path": ["logout"] }
+        "url": { "raw": "{{baseUrl}}/auth/logout", "host": ["{{baseUrl}}"], "path": ["logout"] }
       }
     },
     {
@@ -80,7 +80,7 @@
       "request": {
         "method": "GET",
         "header": [{ "key": "Authorization", "value": "Bearer {{managerToken}}" }],
-        "url": { "raw": "{{baseUrl}}/account", "host": ["{{baseUrl}}"], "path": ["account"] }
+        "url": { "raw": "{{baseUrl}}/auth/account", "host": ["{{baseUrl}}"], "path": ["account"] }
       }
     },
     {

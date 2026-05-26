@@ -32,20 +32,21 @@ public class AuthController {
         // Lấy JWT hiện tại để blacklist
         SecurityUtil.getCurrentUserJwt().ifPresent(jwt -> {
             String tokenId = jwt.getId();
-            String email = jwt.getSubject();
+            String username = jwt.getSubject();
             Instant expiresAt = jwt.getExpiresAt();
-            authService.logout(tokenId, email, expiresAt);
+            authService.logout(tokenId, username, expiresAt);
         });
         return ResponseEntity.ok().build();
     }
 
     @GetMapping("/account")
     public ResponseEntity<ResUserDTO> getAccount() {
-        String email = SecurityUtil.getCurrentUserLogin()
+        String username = SecurityUtil.getCurrentUserLogin()
                 .orElseThrow(() -> new jakarta.persistence.EntityNotFoundException("Chưa đăng nhập"));
-        User user = authService.getCurrentUser(email);
+        User user = authService.getCurrentUser(username);
         ResUserDTO res = new ResUserDTO(
                 user.getId(),
+                user.getUsername(),
                 user.getFullName(),
                 user.getEmail(),
                 user.getPhone(),

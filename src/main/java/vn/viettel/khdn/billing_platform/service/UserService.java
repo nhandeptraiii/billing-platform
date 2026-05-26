@@ -51,6 +51,13 @@ public class UserService {
     }
 
     @Transactional(readOnly = true)
+    public ResUserDTO getByUsername(String username) {
+        User user = userRepository.findByUsername(username)
+            .orElseThrow(() -> new EntityNotFoundException("Không tìm thấy người dùng Username: " + username));
+        return convertToResUserDTO(user);
+    }
+
+    @Transactional(readOnly = true)
     public ResUserDTO getByEmail(String email) {
         User user = userRepository.findByEmail(email)
             .orElseThrow(() -> new EntityNotFoundException("Không tìm thấy người dùng Email: " + email));
@@ -58,10 +65,14 @@ public class UserService {
     }
 
     public ResUserDTO create(ReqUserCreateDTO req) {
-        if (userRepository.existsByEmail(req.email())) {
+        if (userRepository.existsByUsername(req.username())) {
+            throw new EntityExistsException("Username đã tồn tại: " + req.username());
+        }
+        if (req.email() != null && !req.email().isBlank() && userRepository.existsByEmail(req.email())) {
             throw new EntityExistsException("Email đã tồn tại: " + req.email());
         }
         User user = new User();
+        user.setUsername(req.username());
         user.setFullName(req.fullName());
         user.setEmail(req.email());
         user.setPhone(req.phone());
@@ -119,6 +130,7 @@ public class UserService {
     private ResUserDTO convertToResUserDTO(User user) {
         return new ResUserDTO(
             user.getId(),
+            user.getUsername(),
             user.getFullName(),
             user.getEmail(),
             user.getPhone(),

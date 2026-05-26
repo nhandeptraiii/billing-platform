@@ -14,19 +14,25 @@ import vn.viettel.khdn.billing_platform.model.enums.RoleEnum;
 @Getter
 @Setter
 @Entity
-@Table(name = "users")
+@Table(name = "users", uniqueConstraints = {
+    @UniqueConstraint(columnNames = "username"),
+    @UniqueConstraint(columnNames = "email")
+})
 public class User {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    @Column(length = 50, nullable = false, unique = true)
+    private String username;        // Ma nhan vien / username dang nhap
+
     @Column(length = 150)
     private String fullName;
 
-    @Email(message = "Email không hợp lệ")
-    @Column(length = 120, nullable = false, unique = true)
-    private String email;
+    @Email(message = "Email khong hop le")
+    @Column(length = 120, unique = true)
+    private String email;           // Email lien lac (tuy chon)
 
     @Pattern(regexp = "^\\d{10}$", message = "Số điện thoại phải gồm đúng 10 chữ số")
     @Column(length = 30)

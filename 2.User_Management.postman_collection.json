@@ -19,7 +19,7 @@
       "request": {
         "method": "POST",
         "header": [{ "key": "Content-Type", "value": "application/json" }],
-        "body": { "mode": "raw", "raw": "{\n  \"email\": \"admin@billing.vn\",\n  \"password\": \"123456\"\n}" },
+        "body": { "mode": "raw", "raw": "{\n  \"username\": \"admin@billing.vn\",\n  \"password\": \"123456\"\n}" },
         "url": { "raw": "{{baseUrl}}/login", "host": ["{{baseUrl}}"], "path": ["login"] }
       }
     },
@@ -59,14 +59,14 @@
           { "key": "Authorization", "value": "Bearer {{managerToken}}" },
           { "key": "Content-Type", "value": "application/json" }
         ],
-        "body": { "mode": "raw", "raw": "{\n  \"email\": \"consultant1@billing.vn\",\n  \"password\": \"123456\",\n  \"fullName\": \"Nguyễn Văn A\",\n  \"role\": \"CONSULTANT\"\n}" },
+        "body": { "mode": "raw", "raw": "{\n  \"username\": \"consultant1@billing.vn\",\n  \"password\": \"123456\",\n  \"fullName\": \"Nguyễn Văn A\",\n  \"role\": \"CONSULTANT\"\n}" },
         "url": { "raw": "{{baseUrl}}/users", "host": ["{{baseUrl}}"], "path": ["users"] }
       }
     },
     {
-      "name": "TC-USER-04: Tạo user trùng email",
+      "name": "TC-USER-04: Tạo user trùng username",
       "event": [{ "listen": "test", "script": { "exec": [
-        "pm.test('Status 400 — trùng email', () => pm.response.to.have.status(400));"
+        "pm.test('Status 400 — trùng username', () => pm.response.to.have.status(400));"
       ] } }],
       "request": {
         "method": "POST",
@@ -74,7 +74,7 @@
           { "key": "Authorization", "value": "Bearer {{managerToken}}" },
           { "key": "Content-Type", "value": "application/json" }
         ],
-        "body": { "mode": "raw", "raw": "{\n  \"email\": \"consultant1@billing.vn\",\n  \"password\": \"123456\",\n  \"fullName\": \"Trùng Email\",\n  \"role\": \"CONSULTANT\"\n}" },
+        "body": { "mode": "raw", "raw": "{\n  \"username\": \"consultant1@billing.vn\",\n  \"password\": \"123456\",\n  \"fullName\": \"Trùng Email\",\n  \"role\": \"CONSULTANT\"\n}" },
         "url": { "raw": "{{baseUrl}}/users", "host": ["{{baseUrl}}"], "path": ["users"] }
       }
     },
@@ -89,7 +89,7 @@
           { "key": "Authorization", "value": "Bearer {{managerToken}}" },
           { "key": "Content-Type", "value": "application/json" }
         ],
-        "body": { "mode": "raw", "raw": "{\n  \"email\": \"consultant1@billing.vn\",\n  \"password\": \"newpass123\",\n  \"fullName\": \"Nguyễn Văn A (Updated)\",\n  \"role\": \"CONSULTANT\"\n}" },
+        "body": { "mode": "raw", "raw": "{\n  \"username\": \"consultant1@billing.vn\",\n  \"password\": \"newpass123\",\n  \"fullName\": \"Nguyễn Văn A (Updated)\",\n  \"role\": \"CONSULTANT\"\n}" },
         "url": { "raw": "{{baseUrl}}/users/{{userId}}", "host": ["{{baseUrl}}"], "path": ["users","{{userId}}"] }
       }
     },

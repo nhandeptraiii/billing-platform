@@ -34,9 +34,9 @@ public class UserController {
     @PreAuthorize("isAuthenticated()")
     @GetMapping("/me")
     public ResponseEntity<ResUserDTO> getCurrentUser() {
-        String email = SecurityUtil.getCurrentUserLogin()
+        String username = SecurityUtil.getCurrentUserLogin()
             .orElseThrow(() -> new jakarta.persistence.EntityNotFoundException("Chưa đăng nhập"));
-        return ResponseEntity.ok(userService.getByEmail(email));
+        return ResponseEntity.ok(userService.getByUsername(username));
     }
 
     @PreAuthorize("hasAuthority('MANAGER')")
@@ -96,9 +96,9 @@ public class UserController {
     @PreAuthorize("isAuthenticated()")
     @PutMapping("/me/password")
     public ResponseEntity<Map<String, String>> changePassword(@Valid @RequestBody ReqChangePasswordDTO req) {
-        String email = SecurityUtil.getCurrentUserLogin()
+        String username = SecurityUtil.getCurrentUserLogin()
             .orElseThrow(() -> new jakarta.persistence.EntityNotFoundException("Chưa đăng nhập"));
-        ResUserDTO currentUser = userService.getByEmail(email);
+        ResUserDTO currentUser = userService.getByUsername(username);
         userService.changePassword(currentUser.id(), req.oldPassword(), req.newPassword());
         return ResponseEntity.ok(Map.of("message", "Đổi mật khẩu thành công!"));
     }

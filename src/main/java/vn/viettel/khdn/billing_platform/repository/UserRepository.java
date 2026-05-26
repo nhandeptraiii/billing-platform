@@ -13,6 +13,12 @@ import vn.viettel.khdn.billing_platform.model.enums.RoleEnum;
 
 public interface UserRepository extends JpaRepository<User, Long> {
 
+    // ---- Tìm theo username (định danh đăng nhập chính) ----
+    Optional<User> findByUsername(String username);
+
+    boolean existsByUsername(String username);
+
+    // ---- Tìm theo email (vẫn giữ để tra cứu nếu cần) ----
     Optional<User> findByEmail(String email);
 
     boolean existsByEmail(String email);
@@ -23,7 +29,7 @@ public interface UserRepository extends JpaRepository<User, Long> {
               AND (
                 :keyword IS NULL
                 OR LOWER(u.fullName) LIKE LOWER(CONCAT('%', :keyword, '%'))
-                OR LOWER(u.email) LIKE LOWER(CONCAT('%', :keyword, '%'))
+                OR LOWER(u.username) LIKE LOWER(CONCAT('%', :keyword, '%'))
                 OR u.phone LIKE CONCAT('%', :keyword, '%')
               )
             """)

@@ -7,10 +7,12 @@ import jakarta.validation.constraints.Pattern;
 import vn.viettel.khdn.billing_platform.model.enums.RoleEnum;
 
 public record ReqUserCreateDTO(
+    @NotBlank(message = "Username không được để trống")
+    String username,
+
     @NotBlank(message = "Họ tên không được để trống")
     String fullName,
 
-    @NotBlank(message = "Email không được để trống")
     @Email(message = "Email không hợp lệ")
     String email,
 

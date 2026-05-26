@@ -36,11 +36,11 @@ public class AuthService {
     }
 
     public ResLoginDTO login(ReqLoginDTO req) {
-        // Xác thực email + password
+        // Xác thực username + password
         Authentication authentication = authenticationManager.authenticate(
-                new UsernamePasswordAuthenticationToken(req.email(), req.password()));
+                new UsernamePasswordAuthenticationToken(req.username(), req.password()));
 
-        User user = userRepository.findByEmail(req.email())
+        User user = userRepository.findByUsername(req.username())
                 .orElseThrow(() -> new UsernameNotFoundException("Không tìm thấy người dùng"));
 
         if (!"ACTIVE".equals(user.getStatus())) {
@@ -52,6 +52,7 @@ public class AuthService {
 
         return new ResLoginDTO(
                 user.getId(),
+                user.getUsername(),
                 user.getFullName(),
                 user.getEmail(),
                 user.getPhone(),
@@ -68,8 +69,8 @@ public class AuthService {
         revokedTokenRepository.save(revoked);
     }
 
-    public User getCurrentUser(String email) {
-        return userRepository.findByEmail(email)
-                .orElseThrow(() -> new EntityNotFoundException("Không tìm thấy người dùng: " + email));
+    public User getCurrentUser(String username) {
+        return userRepository.findByUsername(username)
+                .orElseThrow(() -> new EntityNotFoundException("Không tìm thấy người dùng: " + username));
     }
 }
