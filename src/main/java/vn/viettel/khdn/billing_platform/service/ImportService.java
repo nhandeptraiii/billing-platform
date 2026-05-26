@@ -37,6 +37,105 @@ public class ImportService {
     }
 
     // =========================================================================
+    // TEMPLATE GENERATION
+    // =========================================================================
+
+    public byte[] generateStartOfPeriodTemplate() {
+        try (Workbook workbook = new org.apache.poi.xssf.usermodel.XSSFWorkbook();
+             java.io.ByteArrayOutputStream out = new java.io.ByteArrayOutputStream()) {
+            
+            Sheet sheet = workbook.createSheet("Import Dau Ky");
+            Row headerRow = sheet.createRow(0);
+            String[] headers = {
+                "STT", "Mã Khách Hàng", "Tên Khách Hàng", "Số TB/Account", "SĐT Liên Hệ", 
+                "Địa Chỉ", "Tổng Cước (VNĐ)", "Hình Thức TT", "Username Nhân Viên", 
+                "Username Quản Lý", "Kỳ Thanh Toán", "Loại Dịch Vụ", "Nội Dung QC"
+            };
+            
+            // Header Style
+            CellStyle headerStyle = workbook.createCellStyle();
+            headerStyle.setFillForegroundColor(IndexedColors.GREY_25_PERCENT.getIndex());
+            headerStyle.setFillPattern(FillPatternType.SOLID_FOREGROUND);
+            Font font = workbook.createFont();
+            font.setBold(true);
+            headerStyle.setFont(font);
+
+            for (int i = 0; i < headers.length; i++) {
+                Cell cell = headerRow.createCell(i);
+                cell.setCellValue(headers[i]);
+                cell.setCellStyle(headerStyle);
+                sheet.setColumnWidth(i, 4000);
+            }
+
+            // Sample Row
+            Row sampleRow = sheet.createRow(1);
+            sampleRow.createCell(0).setCellValue(1);
+            sampleRow.createCell(1).setCellValue("KH001");
+            sampleRow.createCell(2).setCellValue("Nguyen Van A");
+            sampleRow.createCell(3).setCellValue("0901234567");
+            sampleRow.createCell(4).setCellValue("0901234567");
+            sampleRow.createCell(5).setCellValue("Q1, HCM");
+            sampleRow.createCell(6).setCellValue(150000);
+            sampleRow.createCell(7).setCellValue("Tien mat");
+            sampleRow.createCell(8).setCellValue("nhanvien01");
+            sampleRow.createCell(9).setCellValue("quanly01");
+            sampleRow.createCell(10).setCellValue("05/2026");
+            sampleRow.createCell(11).setCellValue("Internet");
+            sampleRow.createCell(12).setCellValue("");
+
+            workbook.write(out);
+            return out.toByteArray();
+        } catch (Exception e) {
+            throw new RuntimeException("Lỗi khi tạo file mẫu", e);
+        }
+    }
+
+    public byte[] generateReconciliationTemplate() {
+        try (Workbook workbook = new org.apache.poi.xssf.usermodel.XSSFWorkbook();
+             java.io.ByteArrayOutputStream out = new java.io.ByteArrayOutputStream()) {
+            
+            Sheet sheet = workbook.createSheet("Bao Cao Viettel");
+            
+            // Viettel report has some title rows
+            sheet.createRow(0).createCell(0).setCellValue("TỔNG CÔNG TY VIỄN THÔNG VIETTEL");
+            sheet.createRow(1).createCell(0).setCellValue("BÁO CÁO ĐỐI CHIẾU THU CƯỚC");
+            
+            // Actual headers at row 6 (index 6)
+            Row headerRow = sheet.createRow(6);
+            String[] headers = {
+                "STT", "Chi nhánh", "Ban cước", "Tổ thu", "Số HĐ", "Số TB", 
+                "Tiền trả", "Số lũy kế", "Còn nợ", "HT thu", "HT TT", "Item no", "Mã HĐ"
+            };
+            
+            CellStyle headerStyle = workbook.createCellStyle();
+            headerStyle.setFillForegroundColor(IndexedColors.GREY_25_PERCENT.getIndex());
+            headerStyle.setFillPattern(FillPatternType.SOLID_FOREGROUND);
+            Font font = workbook.createFont();
+            font.setBold(true);
+            headerStyle.setFont(font);
+
+            for (int i = 0; i < headers.length; i++) {
+                Cell cell = headerRow.createCell(i);
+                cell.setCellValue(headers[i]);
+                cell.setCellStyle(headerStyle);
+                sheet.setColumnWidth(i, 4000);
+            }
+
+            // Sample Row
+            Row sampleRow = sheet.createRow(7);
+            sampleRow.createCell(0).setCellValue(1);
+            sampleRow.createCell(5).setCellValue("0901234567"); // Số TB (Cột F)
+            sampleRow.createCell(6).setCellValue(150000);       // Tiền trả
+            sampleRow.createCell(9).setCellValue("Gạch nợ");    // HT thu (Cột J)
+
+            workbook.write(out);
+            return out.toByteArray();
+        } catch (Exception e) {
+            throw new RuntimeException("Lỗi khi tạo file mẫu", e);
+        }
+    }
+
+    // =========================================================================
     // LUỒNG 1: IMPORT ĐẦU KỲ — mau_import_dau_ky.xlsx
     // =========================================================================
     /**

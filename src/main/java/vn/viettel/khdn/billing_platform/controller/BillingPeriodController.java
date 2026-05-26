@@ -78,6 +78,16 @@ public class BillingPeriodController {
         return ResponseEntity.ok(importService.importStartOfPeriod(file, currentUser));
     }
 
+    @PreAuthorize("hasAuthority('MANAGER')")
+    @GetMapping("/import/template")
+    public ResponseEntity<byte[]> downloadImportTemplate() {
+        byte[] data = importService.generateStartOfPeriodTemplate();
+        return ResponseEntity.ok()
+            .header(org.springframework.http.HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=mau_import_dau_ky.xlsx")
+            .header(org.springframework.http.HttpHeaders.CONTENT_TYPE, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+            .body(data);
+    }
+
     /** PATCH /billing-periods/{id}/close — Đóng kỳ (Manager only) */
     @PatchMapping("/{id}/close")
     @PreAuthorize("hasAuthority('MANAGER')")

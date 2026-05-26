@@ -127,6 +127,16 @@ public class CustomerRecordController {
         return ResponseEntity.ok(importService.importReconciliation(file, periodId));
     }
 
+    @PreAuthorize("hasAuthority('MANAGER')")
+    @GetMapping("/import-reconciliation/template")
+    public ResponseEntity<byte[]> downloadReconciliationTemplate() {
+        byte[] data = importService.generateReconciliationTemplate();
+        return ResponseEntity.ok()
+            .header(org.springframework.http.HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=mau_doi_chieu_viettel.xlsx")
+            .header(org.springframework.http.HttpHeaders.CONTENT_TYPE, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+            .body(data);
+    }
+
     /**
      * GET /records/warnings
      * Danh sách cảnh báo: DA_IN_BILL chưa gạch nợ + INCONSISTENT (Hỗ trợ phân trang)
