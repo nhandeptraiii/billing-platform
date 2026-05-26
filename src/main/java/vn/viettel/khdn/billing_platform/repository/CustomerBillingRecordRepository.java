@@ -34,11 +34,16 @@ public interface CustomerBillingRecordRepository extends JpaRepository<CustomerB
     @Query("""
         SELECT r FROM CustomerBillingRecord r
         WHERE r.billingPeriod.id = :periodId
-          AND (r.status = 'DA_IN_BILL' OR r.syncWarning = 'INCONSISTENT')
+          AND (
+            r.status = 'DA_IN_BILL'
+            OR r.syncWarning = 'INCONSISTENT'
+            OR r.syncWarning = 'COLLECTED_NOT_MARKED'
+          )
         """)
     Page<CustomerBillingRecord> findWarningsByPeriod(
             @Param("periodId") Long periodId,
             Pageable pageable);
+
 
     // Tìm kiếm full-text + filter đa chiều (MANAGER xem tất cả)
     @Query("""

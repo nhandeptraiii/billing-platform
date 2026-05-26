@@ -92,16 +92,15 @@ public class CustomerRecordService {
     }
 
     /**
-     * Bước 3: Tư vấn viên gạch nợ sau khi cập nhật hệ thống Viettel
-     * Status: DA_IN_BILL → DA_GACH_NO
+     * Bước 3: Tư vấn viên xác nhận đã gạch nợ trên hệ thống Viettel (thủ công)
+     * Status: CHUA_THU hoặc DA_IN_BILL → DA_GACH_NO
+     * Lưu ý: có thể bấm trực tiếp mà không cần qua bước in bill
      */
     public CustomerBillingRecord markDebt(Long id, User currentUser) {
         CustomerBillingRecord record = getById(id, currentUser);
 
-        if (record.getStatus() != BillingRecordStatusEnum.DA_IN_BILL) {
-            throw new IllegalStateException(
-                "Chỉ có thể gạch nợ sau khi đã in bill. Trạng thái hiện tại: "
-                + record.getStatus());
+        if (record.getStatus() == BillingRecordStatusEnum.DA_GACH_NO) {
+            throw new IllegalStateException("Bản ghi này đã được gạch nợ rồi.");
         }
 
         record.setStatus(BillingRecordStatusEnum.DA_GACH_NO);
@@ -113,6 +112,7 @@ public class CustomerRecordService {
 
         return recordRepository.save(record);
     }
+
 
     /**
      * Bước 5: Lấy danh sách cảnh báo (DA_IN_BILL chưa gạch nợ + INCONSISTENT)
