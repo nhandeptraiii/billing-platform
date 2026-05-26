@@ -47,8 +47,8 @@ public class BillingPeriodController {
     /** GET /billing-periods — Danh sách tất cả kỳ (Hỗ trợ phân trang) */
     @GetMapping
     public ResponseEntity<Page<BillingPeriod>> getAll(
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "10") int size) {
+            @RequestParam(value = "page", defaultValue = "0") int page,
+            @RequestParam(value = "size", defaultValue = "10") int size) {
         int safeSize = Math.min(Math.max(size, 1), 50);
         Pageable pageable = PageRequest.of(
             Math.max(page, 0),
@@ -60,7 +60,7 @@ public class BillingPeriodController {
 
     /** GET /billing-periods/{id} */
     @GetMapping("/{id}")
-    public ResponseEntity<BillingPeriod> getById(@PathVariable Long id) {
+    public ResponseEntity<BillingPeriod> getById(@PathVariable("id") Long id) {
         return ResponseEntity.ok(
             billingPeriodRepository.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException("Không tìm thấy kỳ ID: " + id)));
@@ -81,7 +81,7 @@ public class BillingPeriodController {
     /** PATCH /billing-periods/{id}/close — Đóng kỳ (Manager only) */
     @PatchMapping("/{id}/close")
     @PreAuthorize("hasAuthority('MANAGER')")
-    public ResponseEntity<BillingPeriod> closePeriod(@PathVariable Long id) {
+    public ResponseEntity<BillingPeriod> closePeriod(@PathVariable("id") Long id) {
         BillingPeriod period = billingPeriodRepository.findById(id)
             .orElseThrow(() -> new EntityNotFoundException("Không tìm thấy kỳ ID: " + id));
 

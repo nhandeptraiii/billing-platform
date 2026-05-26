@@ -62,7 +62,7 @@ public class UserController {
 
     @PreAuthorize("hasAuthority('MANAGER')")
     @GetMapping("/{id}")
-    public ResponseEntity<ResUserDTO> getById(@PathVariable Long id) {
+    public ResponseEntity<ResUserDTO> getById(@PathVariable("id") Long id) {
         return ResponseEntity.ok(userService.getById(id));
     }
 
@@ -74,21 +74,21 @@ public class UserController {
 
     @PreAuthorize("hasAuthority('MANAGER')")
     @PutMapping("/{id}")
-    public ResponseEntity<ResUserDTO> update(@PathVariable Long id,
+    public ResponseEntity<ResUserDTO> update(@PathVariable("id") Long id,
                                        @Valid @RequestBody ReqUserUpdateDTO req) {
         return ResponseEntity.ok(userService.update(id, req));
     }
 
     @PreAuthorize("hasAuthority('MANAGER')")
     @PatchMapping("/{id}/status")
-    public ResponseEntity<ResUserDTO> setStatus(@PathVariable Long id,
-                                          @RequestParam String status) {
+    public ResponseEntity<ResUserDTO> setStatus(@PathVariable("id") Long id,
+                                          @RequestParam("status") String status) {
         return ResponseEntity.ok(userService.setStatus(id, status));
     }
 
     @PreAuthorize("hasAuthority('MANAGER')")
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> delete(@PathVariable Long id) {
+    public ResponseEntity<Void> delete(@PathVariable("id") Long id) {
         userService.delete(id);
         return ResponseEntity.noContent().build();
     }
@@ -105,7 +105,7 @@ public class UserController {
 
     @PreAuthorize("hasAuthority('MANAGER')")
     @PutMapping("/{id}/reset-password")
-    public ResponseEntity<Map<String, String>> resetPassword(@PathVariable Long id,
+    public ResponseEntity<Map<String, String>> resetPassword(@PathVariable("id") Long id,
             @Valid @RequestBody ReqResetPasswordDTO req) {
         userService.resetPassword(id, req.newPassword());
         return ResponseEntity.ok(Map.of("message", "Đặt lại mật khẩu thành công!"));

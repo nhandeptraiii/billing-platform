@@ -55,15 +55,15 @@ public class CustomerRecordController {
      */
     @GetMapping
     public ResponseEntity<Page<ResCustomerRecordDTO>> getRecords(
-            @RequestParam(required = false) Long periodId,
-            @RequestParam(required = false) BillingRecordStatusEnum status,
-            @RequestParam(required = false) String province,
-            @RequestParam(required = false) String ward,
-            @RequestParam(required = false) String hamlet,
-            @RequestParam(required = false) String street,
-            @RequestParam(required = false) String search,
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "20") int size) {
+            @RequestParam(value = "periodId", required = false) Long periodId,
+            @RequestParam(value = "status", required = false) BillingRecordStatusEnum status,
+            @RequestParam(value = "province", required = false) String province,
+            @RequestParam(value = "ward", required = false) String ward,
+            @RequestParam(value = "hamlet", required = false) String hamlet,
+            @RequestParam(value = "street", required = false) String street,
+            @RequestParam(value = "search", required = false) String search,
+            @RequestParam(value = "page", defaultValue = "0") int page,
+            @RequestParam(value = "size", defaultValue = "20") int size) {
 
         User currentUser = getCurrentUser();
         Page<CustomerBillingRecord> records = recordService.search(
@@ -76,7 +76,7 @@ public class CustomerRecordController {
 
     /** GET /records/{id} */
     @GetMapping("/{id}")
-    public ResponseEntity<ResCustomerRecordDTO> getById(@PathVariable Long id) {
+    public ResponseEntity<ResCustomerRecordDTO> getById(@PathVariable("id") Long id) {
         User currentUser = getCurrentUser();
         return ResponseEntity.ok(recordService.toDTO(recordService.getById(id, currentUser)));
     }
@@ -87,7 +87,7 @@ public class CustomerRecordController {
      */
     @PatchMapping("/{id}/print-bill")
     public ResponseEntity<ResCustomerRecordDTO> printBill(
-            @PathVariable Long id,
+            @PathVariable("id") Long id,
             @Valid @RequestBody ReqPrintBillDTO req) {
         User currentUser = getCurrentUser();
         CustomerBillingRecord updated = recordService.printBill(id, req.collectedAmount(), currentUser);
@@ -99,7 +99,7 @@ public class CustomerRecordController {
      * Gạch nợ: DA_IN_BILL → DA_GACH_NO
      */
     @PatchMapping("/{id}/mark-debt")
-    public ResponseEntity<ResCustomerRecordDTO> markDebt(@PathVariable Long id) {
+    public ResponseEntity<ResCustomerRecordDTO> markDebt(@PathVariable("id") Long id) {
         User currentUser = getCurrentUser();
         CustomerBillingRecord updated = recordService.markDebt(id, currentUser);
         return ResponseEntity.ok(recordService.toDTO(updated));
@@ -110,7 +110,7 @@ public class CustomerRecordController {
      * Dữ liệu đầy đủ để Mobile App render + in bill
      */
     @GetMapping("/{id}/bill-data")
-    public ResponseEntity<ResBillDataDTO> getBillData(@PathVariable Long id) {
+    public ResponseEntity<ResBillDataDTO> getBillData(@PathVariable("id") Long id) {
         User currentUser = getCurrentUser();
         return ResponseEntity.ok(recordService.getBillData(id, currentUser));
     }
@@ -123,7 +123,7 @@ public class CustomerRecordController {
     @PreAuthorize("hasAuthority('MANAGER')")
     public ResponseEntity<ImportResultDTO> importReconciliation(
             @RequestParam("file") MultipartFile file,
-            @RequestParam Long periodId) {
+            @RequestParam("periodId") Long periodId) {
         return ResponseEntity.ok(importService.importReconciliation(file, periodId));
     }
 
@@ -133,9 +133,9 @@ public class CustomerRecordController {
      */
     @GetMapping("/warnings")
     public ResponseEntity<Page<ResCustomerRecordDTO>> getWarnings(
-            @RequestParam Long periodId,
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "20") int size) {
+            @RequestParam("periodId") Long periodId,
+            @RequestParam(value = "page", defaultValue = "0") int page,
+            @RequestParam(value = "size", defaultValue = "20") int size) {
         int safeSize = Math.min(Math.max(size, 1), 50);
         org.springframework.data.domain.Pageable pageable = org.springframework.data.domain.PageRequest.of(
             Math.max(page, 0), safeSize, Sort.by(Sort.Order.desc("updatedAt"))
