@@ -13,6 +13,7 @@ import jakarta.validation.Valid;
 import vn.viettel.khdn.billing_platform.model.CustomerBillingRecord;
 import vn.viettel.khdn.billing_platform.model.User;
 import vn.viettel.khdn.billing_platform.model.dto.ImportResultDTO;
+import vn.viettel.khdn.billing_platform.model.dto.ReqCreateCustomerRecordDTO;
 import vn.viettel.khdn.billing_platform.model.dto.ReqPrintBillDTO;
 import vn.viettel.khdn.billing_platform.model.dto.ResBillDataDTO;
 import vn.viettel.khdn.billing_platform.model.dto.ResCustomerRecordDTO;
@@ -72,6 +73,19 @@ public class CustomerRecordController {
             PageRequest.of(page, size, Sort.by("createdAt").descending()));
 
         return ResponseEntity.ok(records.map(recordService::toDTO));
+    }
+
+    /**
+     * POST /records
+     * Thêm mới khách hàng thủ công
+     */
+    @PostMapping
+    @PreAuthorize("hasAuthority('MANAGER')")
+    public ResponseEntity<ResCustomerRecordDTO> createRecord(
+            @Valid @RequestBody ReqCreateCustomerRecordDTO req) {
+        User currentUser = getCurrentUser();
+        CustomerBillingRecord newRecord = recordService.createRecord(req, currentUser);
+        return ResponseEntity.ok(recordService.toDTO(newRecord));
     }
 
     /** GET /records/{id} */

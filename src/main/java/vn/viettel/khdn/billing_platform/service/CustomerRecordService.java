@@ -19,17 +19,27 @@ import vn.viettel.khdn.billing_platform.model.enums.RoleEnum;
 import vn.viettel.khdn.billing_platform.model.enums.SyncWarningEnum;
 import vn.viettel.khdn.billing_platform.repository.CustomerBillingRecordRepository;
 import vn.viettel.khdn.billing_platform.repository.StoreConfigRepository;
+import vn.viettel.khdn.billing_platform.repository.BillingPeriodRepository;
+import vn.viettel.khdn.billing_platform.repository.UserRepository;
+import vn.viettel.khdn.billing_platform.model.BillingPeriod;
+import vn.viettel.khdn.billing_platform.model.dto.ReqCreateCustomerRecordDTO;
 
 @Service
 public class CustomerRecordService {
 
     private final CustomerBillingRecordRepository recordRepository;
     private final StoreConfigRepository storeConfigRepository;
+    private final BillingPeriodRepository billingPeriodRepository;
+    private final UserRepository userRepository;
 
     public CustomerRecordService(CustomerBillingRecordRepository recordRepository,
-                                 StoreConfigRepository storeConfigRepository) {
+                                 StoreConfigRepository storeConfigRepository,
+                                 BillingPeriodRepository billingPeriodRepository,
+                                 UserRepository userRepository) {
         this.recordRepository = recordRepository;
         this.storeConfigRepository = storeConfigRepository;
+        this.billingPeriodRepository = billingPeriodRepository;
+        this.userRepository = userRepository;
     }
 
     /**
@@ -66,6 +76,36 @@ public class CustomerRecordService {
             }
         }
         return record;
+    }
+
+    public CustomerBillingRecord createRecord(ReqCreateCustomerRecordDTO req, User currentUser) {
+        BillingPeriod period = billingPeriodRepository.findById(req.billingPeriodId())
+            .orElseThrow(() -> new EntityNotFoundException("Không tìm thấy kỳ ID: " + req.billingPeriodId()));
+
+        CustomerBillingRecord record = new CustomerBillingRecord();
+        record.setBillingPeriod(period);
+        record.setCustomerCode(req.customerCode());
+        record.setCustomerName(req.customerName());
+        record.setSubscriberNumber(req.subscriberNumber());
+        record.setPhoneNumber(req.phoneNumber());
+        record.setAmountDue(req.amountDue());
+        record.setProvince(req.province());
+        record.setWard(req.ward());
+        record.setHamlet(req.hamlet());
+        record.setStreet(req.street());
+        record.setFullAddress(req.fullAddress());
+        record.setServiceType(req.serviceType());
+
+        if (req.assignedConsultantUsername() != null && !req.assignedConsultantUsername().trim().isEmpty()) {
+            User consultant = userRepository.findByUsername(req.assignedConsultantUsername().trim())
+                .orElseThrow(() -> new EntityNotFoundException("Không tìm thấy nhân viên: " + req.assignedConsultantUsername()));
+            record.setAssignedConsultant(consultant);
+        }
+
+        record.setStatus(BillingRecordStatusEnum.CHUA_THU);
+        record.setSyncWarning(SyncWarningEnum.NONE);
+
+        return recordRepository.save(record);
     }
 
     /**
