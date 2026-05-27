@@ -1,6 +1,5 @@
 package vn.viettel.khdn.billing_platform.model.dto;
 
-import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Pattern;
@@ -13,8 +12,6 @@ public record ReqUserCreateDTO(
     @NotBlank(message = "Họ tên không được để trống")
     String fullName,
 
-    @Email(message = "Email không hợp lệ")
-    String email,
 
     @Pattern(regexp = "^\\d{10}$", message = "Số điện thoại phải gồm đúng 10 chữ số")
     String phone,

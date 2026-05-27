@@ -15,7 +15,7 @@ public class RevokedToken {
     @Id
     private String tokenId; // JWT jti claim
 
-    private String email;
+    private String username;
 
     private Instant expirationTime;
 

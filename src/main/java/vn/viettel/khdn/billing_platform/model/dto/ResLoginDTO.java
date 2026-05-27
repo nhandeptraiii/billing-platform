@@ -6,7 +6,6 @@ public record ResLoginDTO(
     Long id,
     String username,
     String fullName,
-    String email,
     String phone,
     RoleEnum role,
     String accessToken

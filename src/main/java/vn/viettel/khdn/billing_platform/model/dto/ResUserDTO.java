@@ -7,7 +7,6 @@ public record ResUserDTO(
     Long id,
     String username,
     String fullName,
-    String email,
     String phone,
     String status,
     RoleEnum role,

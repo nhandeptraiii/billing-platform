@@ -36,9 +36,9 @@ public class StoreConfigController {
     }
 
     private User getCurrentUser() {
-        String email = SecurityUtil.getCurrentUserLogin()
+        String username = SecurityUtil.getCurrentUserLogin()
             .orElseThrow(() -> new EntityNotFoundException("Chưa đăng nhập"));
-        return userRepository.findByEmail(email)
+        return userRepository.findByUsername(username)
             .orElseThrow(() -> new EntityNotFoundException("Không tìm thấy người dùng"));
     }
 

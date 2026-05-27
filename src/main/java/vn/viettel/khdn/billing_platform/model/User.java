@@ -5,7 +5,6 @@ import java.time.Instant;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
 import jakarta.persistence.*;
-import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.Pattern;
 import lombok.Getter;
 import lombok.Setter;
@@ -15,8 +14,7 @@ import vn.viettel.khdn.billing_platform.model.enums.RoleEnum;
 @Setter
 @Entity
 @Table(name = "users", uniqueConstraints = {
-    @UniqueConstraint(columnNames = "username"),
-    @UniqueConstraint(columnNames = "email")
+    @UniqueConstraint(columnNames = "username")
 })
 public class User {
 
@@ -30,9 +28,7 @@ public class User {
     @Column(length = 150)
     private String fullName;
 
-    @Email(message = "Email khong hop le")
-    @Column(length = 120, unique = true)
-    private String email;           // Email lien lac (tuy chon)
+
 
     @Pattern(regexp = "^\\d{10}$", message = "Số điện thoại phải gồm đúng 10 chữ số")
     @Column(length = 30)

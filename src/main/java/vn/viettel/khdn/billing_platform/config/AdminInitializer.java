@@ -24,10 +24,10 @@ public class AdminInitializer implements CommandLineRunner {
 
     @Override
     public void run(String... args) {
-        userRepository.findByEmail("admin@viettel.com").orElseGet(() -> {
+        userRepository.findByUsername("admin").orElseGet(() -> {
             User admin = new User();
+            admin.setUsername("admin");
             admin.setFullName("System Administrator");
-            admin.setEmail("admin@viettel.com");
             admin.setPassword(passwordEncoder.encode("123456"));
             admin.setStatus("ACTIVE");
             admin.setRole(RoleEnum.MANAGER);

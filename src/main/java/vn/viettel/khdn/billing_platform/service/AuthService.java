@@ -54,16 +54,16 @@ public class AuthService {
                 user.getId(),
                 user.getUsername(),
                 user.getFullName(),
-                user.getEmail(),
+
                 user.getPhone(),
                 user.getRole(),
                 token);
     }
 
-    public void logout(String tokenId, String email, Instant expiresAt) {
+    public void logout(String tokenId, String username, Instant expiresAt) {
         RevokedToken revoked = new RevokedToken();
         revoked.setTokenId(tokenId);
-        revoked.setEmail(email);
+        revoked.setUsername(username);
         revoked.setExpirationTime(expiresAt);
         revoked.setRevokedAt(Instant.now());
         revokedTokenRepository.save(revoked);

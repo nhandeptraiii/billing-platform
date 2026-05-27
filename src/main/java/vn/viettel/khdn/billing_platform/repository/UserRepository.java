@@ -18,10 +18,6 @@ public interface UserRepository extends JpaRepository<User, Long> {
 
     boolean existsByUsername(String username);
 
-    // ---- Tìm theo email (vẫn giữ để tra cứu nếu cần) ----
-    Optional<User> findByEmail(String email);
-
-    boolean existsByEmail(String email);
 
     @Query(value = """
             SELECT u FROM User u
