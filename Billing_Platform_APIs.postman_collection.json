@@ -1,0 +1,411 @@
+{
+  "info": {
+    "name": "Billing Platform APIs",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:8080" },
+    { "key": "token", "value": "" },
+    { "key": "userId", "value": "" },
+    { "key": "periodId", "value": "" },
+    { "key": "recordId", "value": "" }
+  ],
+  "item": [
+    {
+      "name": "1. Auth",
+      "item": [
+        {
+          "name": "Login",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const json = pm.response.json();",
+                  "if (json.accessToken) pm.collectionVariables.set('token', json.accessToken);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"admin\",\n  \"password\": \"123456\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/login", "host": ["{{baseUrl}}"], "path": ["login"] }
+          }
+        },
+        {
+          "name": "Get Current Account",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": { "raw": "{{baseUrl}}/account", "host": ["{{baseUrl}}"], "path": ["account"] }
+          }
+        },
+        {
+          "name": "Logout",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": { "raw": "{{baseUrl}}/logout", "host": ["{{baseUrl}}"], "path": ["logout"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "2. User Management",
+      "item": [
+        {
+          "name": "Get Current User (Me)",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": { "raw": "{{baseUrl}}/users/me", "host": ["{{baseUrl}}"], "path": ["users", "me"] }
+          }
+        },
+        {
+          "name": "Change Password (Me)",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"oldPassword\": \"123456\",\n  \"newPassword\": \"newpass123\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/users/me/password", "host": ["{{baseUrl}}"], "path": ["users", "me", "password"] }
+          }
+        },
+        {
+          "name": "Get Users",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": {
+              "raw": "{{baseUrl}}/users?page=0&size=10",
+              "host": ["{{baseUrl}}"],
+              "path": ["users"],
+              "query": [
+                { "key": "page", "value": "0" },
+                { "key": "size", "value": "10" },
+                { "key": "keyword", "value": "", "disabled": true },
+                { "key": "role", "value": "CONSULTANT", "disabled": true }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Create User",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"consultant1@billing.vn\",\n  \"fullName\": \"Nguyễn Văn A\",\n  \"phone\": \"0987654321\",\n  \"password\": \"123456\",\n  \"role\": \"CONSULTANT\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/users", "host": ["{{baseUrl}}"], "path": ["users"] }
+          }
+        },
+        {
+          "name": "Get User By ID",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": { "raw": "{{baseUrl}}/users/{{userId}}", "host": ["{{baseUrl}}"], "path": ["users", "{{userId}}"] }
+          }
+        },
+        {
+          "name": "Update User",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"fullName\": \"Nguyễn Văn A (Updated)\",\n  \"phone\": \"0987654321\",\n  \"role\": \"CONSULTANT\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/users/{{userId}}", "host": ["{{baseUrl}}"], "path": ["users", "{{userId}}"] }
+          }
+        },
+        {
+          "name": "Update User Status",
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": {
+              "raw": "{{baseUrl}}/users/{{userId}}/status?status=false",
+              "host": ["{{baseUrl}}"],
+              "path": ["users", "{{userId}}", "status"],
+              "query": [
+                { "key": "status", "value": "false" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Reset User Password",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"newPassword\": \"123456\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/users/{{userId}}/reset-password", "host": ["{{baseUrl}}"], "path": ["users", "{{userId}}", "reset-password"] }
+          }
+        },
+        {
+          "name": "Delete User",
+          "request": {
+            "method": "DELETE",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": { "raw": "{{baseUrl}}/users/{{userId}}", "host": ["{{baseUrl}}"], "path": ["users", "{{userId}}"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "3. Billing Period",
+      "item": [
+        {
+          "name": "Get Billing Periods",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": {
+              "raw": "{{baseUrl}}/billing-periods?page=0&size=10",
+              "host": ["{{baseUrl}}"],
+              "path": ["billing-periods"],
+              "query": [
+                { "key": "page", "value": "0" },
+                { "key": "size", "value": "10" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Billing Period By ID",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": { "raw": "{{baseUrl}}/billing-periods/{{periodId}}", "host": ["{{baseUrl}}"], "path": ["billing-periods", "{{periodId}}"] }
+          }
+        },
+        {
+          "name": "Import Billing Period (Excel)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                { "key": "file", "type": "file", "src": [], "description": "Select Excel file (.xlsx)" }
+              ]
+            },
+            "url": { "raw": "{{baseUrl}}/billing-periods/import", "host": ["{{baseUrl}}"], "path": ["billing-periods", "import"] }
+          }
+        },
+        {
+          "name": "Download Import Template",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": { "raw": "{{baseUrl}}/billing-periods/import/template", "host": ["{{baseUrl}}"], "path": ["billing-periods", "import", "template"] }
+          }
+        },
+        {
+          "name": "Close Billing Period",
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": { "raw": "{{baseUrl}}/billing-periods/{{periodId}}/close", "host": ["{{baseUrl}}"], "path": ["billing-periods", "{{periodId}}", "close"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "4. Customer Records",
+      "item": [
+        {
+          "name": "Get Records",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": {
+              "raw": "{{baseUrl}}/records?page=0&size=20",
+              "host": ["{{baseUrl}}"],
+              "path": ["records"],
+              "query": [
+                { "key": "page", "value": "0" },
+                { "key": "size", "value": "20" },
+                { "key": "periodId", "value": "{{periodId}}", "disabled": true },
+                { "key": "status", "value": "CHUA_THU", "disabled": true },
+                { "key": "search", "value": "", "disabled": true },
+                { "key": "province", "value": "", "disabled": true },
+                { "key": "ward", "value": "", "disabled": true },
+                { "key": "hamlet", "value": "", "disabled": true },
+                { "key": "street", "value": "", "disabled": true }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Create Record (Manual)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"billingPeriodId\": 1,\n  \"customerCode\": \"KH001\",\n  \"customerName\": \"Nguyễn Văn A\",\n  \"phoneNumber\": \"0987654321\",\n  \"amountDue\": 150000,\n  \"province\": \"Hà Nội\",\n  \"fullAddress\": \"Hà Nội\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/records", "host": ["{{baseUrl}}"], "path": ["records"] }
+          }
+        },
+        {
+          "name": "Get Record By ID",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": { "raw": "{{baseUrl}}/records/{{recordId}}", "host": ["{{baseUrl}}"], "path": ["records", "{{recordId}}"] }
+          }
+        },
+        {
+          "name": "Print Bill",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"collectedAmount\": 250000\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/records/{{recordId}}/print-bill", "host": ["{{baseUrl}}"], "path": ["records", "{{recordId}}", "print-bill"] }
+          }
+        },
+        {
+          "name": "Mark Debt",
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": { "raw": "{{baseUrl}}/records/{{recordId}}/mark-debt", "host": ["{{baseUrl}}"], "path": ["records", "{{recordId}}", "mark-debt"] }
+          }
+        },
+        {
+          "name": "Get Bill Data",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": { "raw": "{{baseUrl}}/records/{{recordId}}/bill-data", "host": ["{{baseUrl}}"], "path": ["records", "{{recordId}}", "bill-data"] }
+          }
+        },
+        {
+          "name": "Import Reconciliation (Đối chiếu)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                { "key": "file", "type": "file", "src": [], "description": "Select Excel file (.xlsx)" }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/records/import-reconciliation?periodId={{periodId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["records", "import-reconciliation"],
+              "query": [
+                { "key": "periodId", "value": "{{periodId}}" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Download Reconciliation Template",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": { "raw": "{{baseUrl}}/records/import-reconciliation/template", "host": ["{{baseUrl}}"], "path": ["records", "import-reconciliation", "template"] }
+          }
+        },
+        {
+          "name": "Get Warnings",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": {
+              "raw": "{{baseUrl}}/records/warnings?periodId={{periodId}}&page=0&size=20",
+              "host": ["{{baseUrl}}"],
+              "path": ["records", "warnings"],
+              "query": [
+                { "key": "periodId", "value": "{{periodId}}" },
+                { "key": "page", "value": "0" },
+                { "key": "size", "value": "20" }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "5. Store Config",
+      "item": [
+        {
+          "name": "Get Config",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": { "raw": "{{baseUrl}}/store-config", "host": ["{{baseUrl}}"], "path": ["store-config"] }
+          }
+        },
+        {
+          "name": "Update Config",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"storeName\": \"Viettel Store\",\n  \"address\": \"Hà Nội\",\n  \"hotline\": \"18008098\",\n  \"adsText\": \"Cảm ơn quý khách\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/store-config", "host": ["{{baseUrl}}"], "path": ["store-config"] }
+          }
+        },
+        {
+          "name": "Upload QR Image",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                { "key": "file", "type": "file", "src": [], "description": "Select Image File" }
+              ]
+            },
+            "url": { "raw": "{{baseUrl}}/store-config/qr", "host": ["{{baseUrl}}"], "path": ["store-config", "qr"] }
+          }
+        }
+      ]
+    }
+  ]
+}

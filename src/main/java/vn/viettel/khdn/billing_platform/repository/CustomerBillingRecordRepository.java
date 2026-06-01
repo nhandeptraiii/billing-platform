@@ -48,9 +48,10 @@ public interface CustomerBillingRecordRepository extends JpaRepository<CustomerB
     // Tìm kiếm full-text + filter đa chiều (MANAGER xem tất cả)
     @Query("""
         SELECT r FROM CustomerBillingRecord r
+        LEFT JOIN r.assignedConsultant c
         WHERE (:periodId IS NULL OR r.billingPeriod.id = :periodId)
           AND (:status IS NULL OR r.status = :status)
-          AND (:assignedUserId IS NULL OR r.assignedConsultant.id = :assignedUserId)
+          AND (:assignedUserId IS NULL OR c.id = :assignedUserId)
           AND (:province IS NULL OR LOWER(r.province) LIKE LOWER(CONCAT('%', :province, '%')))
           AND (:ward IS NULL OR LOWER(r.ward) LIKE LOWER(CONCAT('%', :ward, '%')))
           AND (:hamlet IS NULL OR LOWER(r.hamlet) LIKE LOWER(CONCAT('%', :hamlet, '%')))

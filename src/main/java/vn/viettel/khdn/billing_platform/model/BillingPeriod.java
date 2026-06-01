@@ -2,6 +2,8 @@ package vn.viettel.khdn.billing_platform.model;
 
 import java.time.Instant;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
@@ -10,10 +12,7 @@ import vn.viettel.khdn.billing_platform.model.enums.BillingPeriodStatusEnum;
 @Getter
 @Setter
 @Entity
-@Table(
-    name = "billing_periods",
-    uniqueConstraints = @UniqueConstraint(columnNames = {"month", "year"})
-)
+@Table(name = "billing_periods", uniqueConstraints = @UniqueConstraint(columnNames = { "month", "year" }))
 public class BillingPeriod {
 
     @Id
@@ -24,10 +23,10 @@ public class BillingPeriod {
     private Integer month; // 1-12
 
     @Column(nullable = false)
-    private Integer year;  // VD: 2026
+    private Integer year; // VD: 2026
 
     @Column(length = 50)
-    private String name;   // "Tháng 5/2026" — tự sinh khi tạo
+    private String name; // "Tháng 5/2026" — tự sinh khi tạo
 
     @Enumerated(EnumType.STRING)
     @Column(length = 20)
@@ -35,6 +34,7 @@ public class BillingPeriod {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "created_by_id")
+    @JsonIgnoreProperties({ "hibernateLazyInitializer", "handler" })
     private User createdBy;
 
     private Instant createdAt;
