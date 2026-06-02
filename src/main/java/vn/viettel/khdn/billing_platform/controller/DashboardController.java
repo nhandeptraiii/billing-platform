@@ -15,7 +15,7 @@ import vn.viettel.khdn.billing_platform.service.DashboardService;
 import java.util.List;
 
 @RestController
-@RequestMapping("/api/dashboard")
+@RequestMapping("/dashboard")
 @RequiredArgsConstructor
 public class DashboardController {
 

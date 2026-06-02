@@ -1,0 +1,125 @@
+{
+  "info": {
+    "name": "Dashboard APIs - Billing Platform",
+    "description": "Các API thống kê và theo dõi dành cho Dashboard",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "1. Tổng quan (Overview)",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{access_token}}",
+            "type": "text"
+          }
+        ],
+        "url": {
+          "raw": "http://localhost:8080/dashboard/overview?periodId=1",
+          "protocol": "http",
+          "host": [
+            "localhost"
+          ],
+          "port": "8080",
+          "path": [
+            "dashboard",
+            "overview"
+          ],
+          "query": [
+            {
+              "key": "periodId",
+              "value": "1",
+              "description": "ID của kỳ thu cước"
+            }
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "2. Tiến độ nhân viên (Consultants)",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{access_token}}",
+            "type": "text"
+          }
+        ],
+        "url": {
+          "raw": "http://localhost:8080/dashboard/consultants?periodId=1",
+          "protocol": "http",
+          "host": [
+            "localhost"
+          ],
+          "port": "8080",
+          "path": [
+            "dashboard",
+            "consultants"
+          ],
+          "query": [
+            {
+              "key": "periodId",
+              "value": "1",
+              "description": "ID của kỳ thu cước"
+            }
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "3. Danh sách cảnh báo (Warnings)",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{access_token}}",
+            "type": "text"
+          }
+        ],
+        "url": {
+          "raw": "http://localhost:8080/dashboard/warnings?periodId=1&page=0&size=20",
+          "protocol": "http",
+          "host": [
+            "localhost"
+          ],
+          "port": "8080",
+          "path": [
+            "dashboard",
+            "warnings"
+          ],
+          "query": [
+            {
+              "key": "periodId",
+              "value": "1",
+              "description": "ID của kỳ thu cước"
+            },
+            {
+              "key": "page",
+              "value": "0",
+              "description": "Trang bắt đầu (0-indexed)"
+            },
+            {
+              "key": "size",
+              "value": "20",
+              "description": "Số lượng bản ghi mỗi trang"
+            }
+          ]
+        }
+      },
+      "response": []
+    }
+  ],
+  "variable": [
+    {
+      "key": "access_token",
+      "value": "DÁN_TOKEN_CỦA_MANAGER_HOẶC_ADMIN_VÀO_ĐÂY",
+      "type": "string"
+    }
+  ]
+}
