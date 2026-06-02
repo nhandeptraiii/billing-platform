@@ -290,10 +290,10 @@ public class ImportService {
      * │ Trạng thái HT│ File Viettel     │ Kết quả                                             │
      * ├──────────────┼──────────────────┼─────────────────────────────────────────────────────┤
      * │ DA_GACH_NO   │ Đã gạch nợ       │ ✅ OK — bỏ qua                                      │
-     * │ DA_IN_BILL   │ Đã gạch nợ       │ ✅ Auto cập nhật → DA_GACH_NO (file Viettel là chuẩn)│
+     * │ DA_THANH_TOAN │ Đã gạch nợ       │ ✅ Auto cập nhật → DA_GACH_NO (file Viettel là chuẩn)│
      * │ CHUA_THU     │ Đã gạch nợ       │ ✅ Auto cập nhật → DA_GACH_NO (gạch mà chưa thu)    │
      * │ DA_GACH_NO   │ Chưa gạch nợ     │ ⚠️ INCONSISTENT — HT ghi gạch nhưng Viettel chưa   │
-     * │ DA_IN_BILL   │ Chưa gạch nợ     │ ⚠️ COLLECTED_NOT_MARKED — đã thu chưa gạch Viettel  │
+     * │ DA_THANH_TOAN │ Chưa gạch nợ     │ ⚠️ COLLECTED_NOT_MARKED — đã thu chưa gạch Viettel  │
      * │ CHUA_THU     │ Chưa gạch nợ     │ — Bỏ qua                                            │
      * └──────────────┴──────────────────┴─────────────────────────────────────────────────────┘
      */
@@ -375,8 +375,8 @@ public class ImportService {
                             recordRepository.save(record);
                             warningCount++;
 
-                        } else if (sysStatus == BillingRecordStatusEnum.DA_IN_BILL) {
-                            // TH5: Đã thu/in bill nhưng chưa gạch trên Viettel → COLLECTED_NOT_MARKED
+                        } else if (sysStatus == BillingRecordStatusEnum.DA_THANH_TOAN) {
+                            // TH5: Đã thu tiền/thanh toán nhưng chưa gạch trên Viettel → COLLECTED_NOT_MARKED
                             record.setSyncWarning(SyncWarningEnum.COLLECTED_NOT_MARKED);
                             record.setSyncWarningNote(
                                 "Đã thu tiền và in bill nhưng chưa gạch nợ trên hệ thống Viettel. "

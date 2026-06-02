@@ -109,8 +109,9 @@ public class CustomerRecordService {
     }
 
     /**
-     * Bước 2: Tư vấn viên thu tiền → In bill
-     * Status: CHUA_THU → DA_IN_BILL
+     * Bước 2: Người thu thu tiền → In bill (hoặc xác nhận đã thanh toán)
+     * Status: CHUA_THU → DA_THANH_TOAN
+     * Hành động "In bill" và "Đã thanh toán" được gộp thành 1 bước.
      */
     public CustomerBillingRecord printBill(Long id, java.math.BigDecimal collectedAmount,
                                             User currentUser) {
@@ -118,11 +119,11 @@ public class CustomerRecordService {
 
         if (record.getStatus() != BillingRecordStatusEnum.CHUA_THU) {
             throw new IllegalStateException(
-                "Chỉ có thể in bill khi trạng thái là CHƯA THU. Trạng thái hiện tại: "
+                "Chỉ có thể thu tiền khi trạng thái là CHƯA THU. Trạng thái hiện tại: "
                 + record.getStatus());
         }
 
-        record.setStatus(BillingRecordStatusEnum.DA_IN_BILL);
+        record.setStatus(BillingRecordStatusEnum.DA_THANH_TOAN);
         record.setCollectedAmount(collectedAmount);
         record.setCollectedBy(currentUser);
         record.setCollectedAt(Instant.now());
@@ -132,13 +133,17 @@ public class CustomerRecordService {
     }
 
     /**
-     * Bước 3: Tư vấn viên xác nhận đã gạch nợ trên hệ thống Viettel (thủ công)
-     * Status: CHUA_THU hoặc DA_IN_BILL → DA_GACH_NO
-     * Lưu ý: có thể bấm trực tiếp mà không cần qua bước in bill
+     * Bước 3: Người thu xác nhận đã gạch nợ trên hệ thống Viettel (thủ công)
+     * Status: DA_THANH_TOAN → DA_GACH_NO
+     * Lưu ý: phải đã thanh toán trước mới được gạch nợ.
      */
     public CustomerBillingRecord markDebt(Long id, User currentUser) {
         CustomerBillingRecord record = getById(id, currentUser);
 
+        if (record.getStatus() == BillingRecordStatusEnum.CHUA_THU) {
+            throw new IllegalStateException(
+                "Không thể gạch nợ khi chưa thu tiền. Vui lòng thu tiền (in bill) trước.");
+        }
         if (record.getStatus() == BillingRecordStatusEnum.DA_GACH_NO) {
             throw new IllegalStateException("Bản ghi này đã được gạch nợ rồi.");
         }
@@ -155,7 +160,7 @@ public class CustomerRecordService {
 
 
     /**
-     * Bước 5: Lấy danh sách cảnh báo (DA_IN_BILL chưa gạch nợ + INCONSISTENT)
+     * Bước 5: Lấy danh sách cảnh báo (DA_THANH_TOAN chưa gạch nợ + INCONSISTENT)
      */
     public Page<CustomerBillingRecord> getWarnings(Long periodId, Pageable pageable) {
         return recordRepository.findWarningsByPeriod(periodId, pageable);

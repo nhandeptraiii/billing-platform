@@ -97,7 +97,7 @@ public class CustomerRecordController {
 
     /**
      * PATCH /records/{id}/print-bill
-     * Thu tiền + in bill: CHUA_THU → DA_IN_BILL
+     * Thu tiền + in bill (hoặc xác nhận đã thanh toán): CHUA_THU → DA_THANH_TOAN
      */
     @PatchMapping("/{id}/print-bill")
     public ResponseEntity<ResCustomerRecordDTO> printBill(
@@ -110,7 +110,7 @@ public class CustomerRecordController {
 
     /**
      * PATCH /records/{id}/mark-debt
-     * Gạch nợ: DA_IN_BILL → DA_GACH_NO
+     * Gạch nợ: DA_THANH_TOAN → DA_GACH_NO
      */
     @PatchMapping("/{id}/mark-debt")
     public ResponseEntity<ResCustomerRecordDTO> markDebt(@PathVariable("id") Long id) {
@@ -153,7 +153,7 @@ public class CustomerRecordController {
 
     /**
      * GET /records/warnings
-     * Danh sách cảnh báo: DA_IN_BILL chưa gạch nợ + INCONSISTENT (Hỗ trợ phân trang)
+     * Danh sách cảnh báo: DA_THANH_TOAN chưa gạch nợ + INCONSISTENT (Hỗ trợ phân trang)
      */
     @GetMapping("/warnings")
     public ResponseEntity<Page<ResCustomerRecordDTO>> getWarnings(

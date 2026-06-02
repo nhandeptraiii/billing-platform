@@ -50,14 +50,7 @@ public class AuthService {
 
         String token = securityUtil.createToken(authentication);
 
-        return new ResLoginDTO(
-                user.getId(),
-                user.getUsername(),
-                user.getFullName(),
-
-                user.getPhone(),
-                user.getRole(),
-                token);
+        return new ResLoginDTO(token);
     }
 
     public void logout(String tokenId, String username, Instant expiresAt) {

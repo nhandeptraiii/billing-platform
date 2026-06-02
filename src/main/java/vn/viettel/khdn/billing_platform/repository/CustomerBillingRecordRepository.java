@@ -23,7 +23,7 @@ public interface CustomerBillingRecordRepository extends JpaRepository<CustomerB
     Optional<CustomerBillingRecord> findBySubscriberNumberAndBillingPeriodId(
             String subscriberNumber, Long billingPeriodId);
 
-    // Danh sách cảnh báo DA_IN_BILL chưa gạch nợ (dùng cho cuối ngày + warnings API)
+    // Danh sách cảnh báo DA_THANH_TOAN chưa gạch nợ (dùng cho cuối ngày + warnings API)
     List<CustomerBillingRecord> findByBillingPeriodIdAndStatus(
             Long periodId, BillingRecordStatusEnum status);
 
@@ -35,7 +35,7 @@ public interface CustomerBillingRecordRepository extends JpaRepository<CustomerB
         SELECT r FROM CustomerBillingRecord r
         WHERE r.billingPeriod.id = :periodId
           AND (
-            r.status = 'DA_IN_BILL'
+            r.status = 'DA_THANH_TOAN'
             OR r.syncWarning = 'INCONSISTENT'
             OR r.syncWarning = 'COLLECTED_NOT_MARKED'
           )
@@ -115,7 +115,7 @@ public interface CustomerBillingRecordRepository extends JpaRepository<CustomerB
                COUNT(r), SUM(r.collectedAmount)
         FROM CustomerBillingRecord r
         WHERE r.billingPeriod.id = :periodId
-          AND r.status IN ('DA_IN_BILL', 'DA_GACH_NO')
+          AND r.status IN ('DA_THANH_TOAN', 'DA_GACH_NO')
         GROUP BY r.assignedConsultant.id, r.assignedConsultant.fullName
         """)
     List<Object[]> getConsultantPerformance(@Param("periodId") Long periodId);

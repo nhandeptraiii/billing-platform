@@ -17,7 +17,7 @@ import vn.viettel.khdn.billing_platform.repository.CustomerBillingRecordReposito
 
 /**
  * Bước 5 — Kiểm tra cảnh báo cuối ngày:
- * Tìm tất cả bản ghi DA_IN_BILL trong các kỳ OPEN → log cảnh báo.
+ * Tìm tất cả bản ghi DA_THANH_TOAN trong các kỳ OPEN → log cảnh báo.
  * (Frontend gọi GET /records/warnings để hiển thị danh sách)
  */
 @Component
@@ -52,11 +52,11 @@ public class BillingScheduler {
 
         for (BillingPeriod period : openPeriods) {
             List<CustomerBillingRecord> unprocessed = recordRepository
-                .findByBillingPeriodIdAndStatus(period.getId(), BillingRecordStatusEnum.DA_IN_BILL);
+                .findByBillingPeriodIdAndStatus(period.getId(), BillingRecordStatusEnum.DA_THANH_TOAN);
 
             if (!unprocessed.isEmpty()) {
                 totalWarnings += unprocessed.size();
-                log.warn("[BillingScheduler] Kỳ {} ({}/{}): {} bản ghi ĐÃ IN BILL nhưng CHƯA GẠCH NỢ",
+                log.warn("[BillingScheduler] Kỳ {} ({}/{}): {} bản ghi ĐÃ THANH TOÁN nhưng CHƯA GẠCH NỢ",
                     period.getName(), period.getMonth(), period.getYear(), unprocessed.size());
             }
         }
