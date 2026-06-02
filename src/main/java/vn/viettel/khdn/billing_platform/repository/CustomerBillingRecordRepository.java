@@ -108,21 +108,22 @@ public interface CustomerBillingRecordRepository extends JpaRepository<CustomerB
 
     // Thống kê tiến độ theo kỳ
     @Query("""
-        SELECT r.collectionStatus, r.debtStatus, COUNT(r), SUM(r.collectedAmount)
+        SELECT r.collectionStatus, r.debtStatus, COUNT(r), SUM(r.amountDue), SUM(r.collectedAmount)
         FROM CustomerBillingRecord r
         WHERE r.billingPeriod.id = :periodId
         GROUP BY r.collectionStatus, r.debtStatus
         """)
     List<Object[]> getProgressByPeriod(@Param("periodId") Long periodId);
 
-    // Thống kê theo tư vấn viên trong kỳ (chỉ tính những bản ghi đã thu tiền)
+    // Thống kê theo tư vấn viên trong kỳ (kèm chỉ tiêu)
     @Query("""
         SELECT r.assignedConsultant.id, r.assignedConsultant.fullName,
-               COUNT(r), SUM(r.collectedAmount)
+               COUNT(r), SUM(r.amountDue),
+               SUM(CASE WHEN r.collectionStatus = 'DA_THANH_TOAN' THEN 1 ELSE 0 END),
+               SUM(CASE WHEN r.collectionStatus = 'DA_THANH_TOAN' THEN r.collectedAmount ELSE 0 END)
         FROM CustomerBillingRecord r
         WHERE r.billingPeriod.id = :periodId
-          AND r.collectionStatus = 'DA_THANH_TOAN'
         GROUP BY r.assignedConsultant.id, r.assignedConsultant.fullName
         """)
-    List<Object[]> getConsultantPerformance(@Param("periodId") Long periodId);
+    List<Object[]> getConsultantPerformanceWithTarget(@Param("periodId") Long periodId);
 }
