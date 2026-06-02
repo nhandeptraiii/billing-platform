@@ -11,13 +11,15 @@ import org.springframework.stereotype.Component;
 import vn.viettel.khdn.billing_platform.model.BillingPeriod;
 import vn.viettel.khdn.billing_platform.model.CustomerBillingRecord;
 import vn.viettel.khdn.billing_platform.model.enums.BillingPeriodStatusEnum;
-import vn.viettel.khdn.billing_platform.model.enums.BillingRecordStatusEnum;
+import vn.viettel.khdn.billing_platform.model.enums.CollectionStatusEnum;
+import vn.viettel.khdn.billing_platform.model.enums.DebtStatusEnum;
 import vn.viettel.khdn.billing_platform.repository.BillingPeriodRepository;
 import vn.viettel.khdn.billing_platform.repository.CustomerBillingRecordRepository;
 
 /**
  * Bước 5 — Kiểm tra cảnh báo cuối ngày:
- * Tìm tất cả bản ghi DA_THANH_TOAN trong các kỳ OPEN → log cảnh báo.
+ * Tìm tất cả bản ghi DA_THANH_TOAN (đã thu) nhưng CHUA_GACH_NO (chưa gạch nợ Viettel)
+ * trong các kỳ OPEN → log cảnh báo.
  * (Frontend gọi GET /records/warnings để hiển thị danh sách)
  */
 @Component
@@ -52,11 +54,14 @@ public class BillingScheduler {
 
         for (BillingPeriod period : openPeriods) {
             List<CustomerBillingRecord> unprocessed = recordRepository
-                .findByBillingPeriodIdAndStatus(period.getId(), BillingRecordStatusEnum.DA_THANH_TOAN);
+                .findByBillingPeriodIdAndCollectionStatusAndDebtStatus(
+                    period.getId(),
+                    CollectionStatusEnum.DA_THANH_TOAN,
+                    DebtStatusEnum.CHUA_GACH_NO);
 
             if (!unprocessed.isEmpty()) {
                 totalWarnings += unprocessed.size();
-                log.warn("[BillingScheduler] Kỳ {} ({}/{}): {} bản ghi ĐÃ THANH TOÁN nhưng CHƯA GẠCH NỢ",
+                log.warn("[BillingScheduler] Kỳ {} ({}/{}): {} bản ghi ĐÃ THANH TOÁN nhưng CHƯA GẠCH NỢ trên Viettel",
                     period.getName(), period.getMonth(), period.getYear(), unprocessed.size());
             }
         }

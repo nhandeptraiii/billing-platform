@@ -10,7 +10,8 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 import vn.viettel.khdn.billing_platform.model.CustomerBillingRecord;
-import vn.viettel.khdn.billing_platform.model.enums.BillingRecordStatusEnum;
+import vn.viettel.khdn.billing_platform.model.enums.CollectionStatusEnum;
+import vn.viettel.khdn.billing_platform.model.enums.DebtStatusEnum;
 import vn.viettel.khdn.billing_platform.model.enums.SyncWarningEnum;
 
 public interface CustomerBillingRecordRepository extends JpaRepository<CustomerBillingRecord, Long> {
@@ -23,19 +24,20 @@ public interface CustomerBillingRecordRepository extends JpaRepository<CustomerB
     Optional<CustomerBillingRecord> findBySubscriberNumberAndBillingPeriodId(
             String subscriberNumber, Long billingPeriodId);
 
-    // Danh sách cảnh báo DA_THANH_TOAN chưa gạch nợ (dùng cho cuối ngày + warnings API)
-    List<CustomerBillingRecord> findByBillingPeriodIdAndStatus(
-            Long periodId, BillingRecordStatusEnum status);
+    // Scheduler cuối ngày: tìm bản ghi DA_THANH_TOAN nhưng chưa gạch nợ
+    List<CustomerBillingRecord> findByBillingPeriodIdAndCollectionStatusAndDebtStatus(
+            Long periodId, CollectionStatusEnum collectionStatus, DebtStatusEnum debtStatus);
 
-    // Danh sách cảnh báo đồng bộ (TH3 import đối chiếu)
+    // Danh sách cảnh báo đồng bộ (TH import đối chiếu)
     List<CustomerBillingRecord> findByBillingPeriodIdAndSyncWarning(
             Long periodId, SyncWarningEnum syncWarning);
 
+    // Cảnh báo: DA_THANH_TOAN chưa gạch nợ + INCONSISTENT (dùng cho warnings API)
     @Query("""
         SELECT r FROM CustomerBillingRecord r
         WHERE r.billingPeriod.id = :periodId
           AND (
-            r.status = 'DA_THANH_TOAN'
+            (r.collectionStatus = 'DA_THANH_TOAN' AND r.debtStatus = 'CHUA_GACH_NO')
             OR r.syncWarning = 'INCONSISTENT'
             OR r.syncWarning = 'COLLECTED_NOT_MARKED'
           )
@@ -50,7 +52,8 @@ public interface CustomerBillingRecordRepository extends JpaRepository<CustomerB
         SELECT r FROM CustomerBillingRecord r
         LEFT JOIN r.assignedConsultant c
         WHERE (:periodId IS NULL OR r.billingPeriod.id = :periodId)
-          AND (:status IS NULL OR r.status = :status)
+          AND (:collectionStatus IS NULL OR r.collectionStatus = :collectionStatus)
+          AND (:debtStatus IS NULL OR r.debtStatus = :debtStatus)
           AND (:assignedUserId IS NULL OR c.id = :assignedUserId)
           AND (:province IS NULL OR LOWER(r.province) LIKE LOWER(CONCAT('%', :province, '%')))
           AND (:ward IS NULL OR LOWER(r.ward) LIKE LOWER(CONCAT('%', :ward, '%')))
@@ -64,7 +67,8 @@ public interface CustomerBillingRecordRepository extends JpaRepository<CustomerB
         """)
     Page<CustomerBillingRecord> searchAll(
             @Param("periodId") Long periodId,
-            @Param("status") BillingRecordStatusEnum status,
+            @Param("collectionStatus") CollectionStatusEnum collectionStatus,
+            @Param("debtStatus") DebtStatusEnum debtStatus,
             @Param("assignedUserId") Long assignedUserId,
             @Param("province") String province,
             @Param("ward") String ward,
@@ -78,7 +82,8 @@ public interface CustomerBillingRecordRepository extends JpaRepository<CustomerB
         SELECT r FROM CustomerBillingRecord r
         WHERE r.assignedConsultant.id = :consultantId
           AND (:periodId IS NULL OR r.billingPeriod.id = :periodId)
-          AND (:status IS NULL OR r.status = :status)
+          AND (:collectionStatus IS NULL OR r.collectionStatus = :collectionStatus)
+          AND (:debtStatus IS NULL OR r.debtStatus = :debtStatus)
           AND (:province IS NULL OR LOWER(r.province) LIKE LOWER(CONCAT('%', :province, '%')))
           AND (:ward IS NULL OR LOWER(r.ward) LIKE LOWER(CONCAT('%', :ward, '%')))
           AND (:hamlet IS NULL OR LOWER(r.hamlet) LIKE LOWER(CONCAT('%', :hamlet, '%')))
@@ -92,7 +97,8 @@ public interface CustomerBillingRecordRepository extends JpaRepository<CustomerB
     Page<CustomerBillingRecord> searchByConsultant(
             @Param("consultantId") Long consultantId,
             @Param("periodId") Long periodId,
-            @Param("status") BillingRecordStatusEnum status,
+            @Param("collectionStatus") CollectionStatusEnum collectionStatus,
+            @Param("debtStatus") DebtStatusEnum debtStatus,
             @Param("province") String province,
             @Param("ward") String ward,
             @Param("hamlet") String hamlet,
@@ -102,20 +108,20 @@ public interface CustomerBillingRecordRepository extends JpaRepository<CustomerB
 
     // Thống kê tiến độ theo kỳ
     @Query("""
-        SELECT r.status, COUNT(r), SUM(r.collectedAmount)
+        SELECT r.collectionStatus, r.debtStatus, COUNT(r), SUM(r.collectedAmount)
         FROM CustomerBillingRecord r
         WHERE r.billingPeriod.id = :periodId
-        GROUP BY r.status
+        GROUP BY r.collectionStatus, r.debtStatus
         """)
     List<Object[]> getProgressByPeriod(@Param("periodId") Long periodId);
 
-    // Thống kê theo tư vấn viên trong kỳ
+    // Thống kê theo tư vấn viên trong kỳ (chỉ tính những bản ghi đã thu tiền)
     @Query("""
         SELECT r.assignedConsultant.id, r.assignedConsultant.fullName,
                COUNT(r), SUM(r.collectedAmount)
         FROM CustomerBillingRecord r
         WHERE r.billingPeriod.id = :periodId
-          AND r.status IN ('DA_THANH_TOAN', 'DA_GACH_NO')
+          AND r.collectionStatus = 'DA_THANH_TOAN'
         GROUP BY r.assignedConsultant.id, r.assignedConsultant.fullName
         """)
     List<Object[]> getConsultantPerformance(@Param("periodId") Long periodId);

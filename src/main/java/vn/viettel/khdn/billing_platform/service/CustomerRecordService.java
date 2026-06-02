@@ -14,7 +14,8 @@ import vn.viettel.khdn.billing_platform.model.StoreConfig;
 import vn.viettel.khdn.billing_platform.model.User;
 import vn.viettel.khdn.billing_platform.model.dto.ResBillDataDTO;
 import vn.viettel.khdn.billing_platform.model.dto.ResCustomerRecordDTO;
-import vn.viettel.khdn.billing_platform.model.enums.BillingRecordStatusEnum;
+import vn.viettel.khdn.billing_platform.model.enums.CollectionStatusEnum;
+import vn.viettel.khdn.billing_platform.model.enums.DebtStatusEnum;
 import vn.viettel.khdn.billing_platform.model.enums.RoleEnum;
 import vn.viettel.khdn.billing_platform.model.enums.SyncWarningEnum;
 import vn.viettel.khdn.billing_platform.repository.CustomerBillingRecordRepository;
@@ -46,20 +47,22 @@ public class CustomerRecordService {
      * Tìm kiếm bản ghi có role-based access control:
      * - MANAGER: thấy tất cả
      * - CONSULTANT: chỉ thấy KH của mình
+     * Filter độc lập theo collectionStatus và debtStatus.
      */
     public Page<CustomerBillingRecord> search(User currentUser,
                                                Long periodId,
-                                               BillingRecordStatusEnum status,
+                                               CollectionStatusEnum collectionStatus,
+                                               DebtStatusEnum debtStatus,
                                                String province, String ward,
                                                String hamlet, String street,
                                                String search, Pageable pageable) {
         if (currentUser.getRole() == RoleEnum.MANAGER) {
             return recordRepository.searchAll(
-                periodId, status, null,
+                periodId, collectionStatus, debtStatus, null,
                 province, ward, hamlet, street, search, pageable);
         } else {
             return recordRepository.searchByConsultant(
-                currentUser.getId(), periodId, status,
+                currentUser.getId(), periodId, collectionStatus, debtStatus,
                 province, ward, hamlet, street, search, pageable);
         }
     }
@@ -102,28 +105,30 @@ public class CustomerRecordService {
             record.setAssignedConsultant(consultant);
         }
 
-        record.setStatus(BillingRecordStatusEnum.CHUA_THU);
+        record.setCollectionStatus(CollectionStatusEnum.CHUA_THU);
+        record.setDebtStatus(DebtStatusEnum.CHUA_GACH_NO);
         record.setSyncWarning(SyncWarningEnum.NONE);
 
         return recordRepository.save(record);
     }
 
     /**
-     * Bước 2: Người thu thu tiền → In bill (hoặc xác nhận đã thanh toán)
-     * Status: CHUA_THU → DA_THANH_TOAN
-     * Hành động "In bill" và "Đã thanh toán" được gộp thành 1 bước.
+     * Nút "In bill / Đã thanh toán":
+     * Người thu thu tiền trực tiếp → in bill.
+     * Chỉ cập nhật collectionStatus, KHÔNG thay đổi debtStatus.
+     * collectionStatus: CHUA_THU → DA_THANH_TOAN
      */
     public CustomerBillingRecord printBill(Long id, java.math.BigDecimal collectedAmount,
                                             User currentUser) {
         CustomerBillingRecord record = getById(id, currentUser);
 
-        if (record.getStatus() != BillingRecordStatusEnum.CHUA_THU) {
+        if (record.getCollectionStatus() != CollectionStatusEnum.CHUA_THU) {
             throw new IllegalStateException(
-                "Chỉ có thể thu tiền khi trạng thái là CHƯA THU. Trạng thái hiện tại: "
-                + record.getStatus());
+                "Chỉ có thể thu tiền khi trạng thái thu là CHƯA THU. Trạng thái hiện tại: "
+                + record.getCollectionStatus());
         }
 
-        record.setStatus(BillingRecordStatusEnum.DA_THANH_TOAN);
+        record.setCollectionStatus(CollectionStatusEnum.DA_THANH_TOAN);
         record.setCollectedAmount(collectedAmount);
         record.setCollectedBy(currentUser);
         record.setCollectedAt(Instant.now());
@@ -133,22 +138,24 @@ public class CustomerRecordService {
     }
 
     /**
-     * Bước 3: Người thu xác nhận đã gạch nợ trên hệ thống Viettel (thủ công)
-     * Status: DA_THANH_TOAN → DA_GACH_NO
-     * Lưu ý: phải đã thanh toán trước mới được gạch nợ.
+     * Nút "Đã gạch nợ":
+     * Người thu xác nhận đã gạch nợ thủ công trên hệ thống Viettel.
+     * Chỉ cập nhật debtStatus, KHÔNG thay đổi collectionStatus.
+     * Điều kiện: phải đã thu tiền trước (collectionStatus = DA_THANH_TOAN).
+     * debtStatus: CHUA_GACH_NO → DA_GACH_NO
      */
     public CustomerBillingRecord markDebt(Long id, User currentUser) {
         CustomerBillingRecord record = getById(id, currentUser);
 
-        if (record.getStatus() == BillingRecordStatusEnum.CHUA_THU) {
+        if (record.getCollectionStatus() == CollectionStatusEnum.CHUA_THU) {
             throw new IllegalStateException(
                 "Không thể gạch nợ khi chưa thu tiền. Vui lòng thu tiền (in bill) trước.");
         }
-        if (record.getStatus() == BillingRecordStatusEnum.DA_GACH_NO) {
+        if (record.getDebtStatus() == DebtStatusEnum.DA_GACH_NO) {
             throw new IllegalStateException("Bản ghi này đã được gạch nợ rồi.");
         }
 
-        record.setStatus(BillingRecordStatusEnum.DA_GACH_NO);
+        record.setDebtStatus(DebtStatusEnum.DA_GACH_NO);
         record.setDebtMarkedBy(currentUser);
         record.setDebtMarkedAt(Instant.now());
         // Xóa cảnh báo nếu có
@@ -158,9 +165,10 @@ public class CustomerRecordService {
         return recordRepository.save(record);
     }
 
-
     /**
-     * Bước 5: Lấy danh sách cảnh báo (DA_THANH_TOAN chưa gạch nợ + INCONSISTENT)
+     * Lấy danh sách cảnh báo:
+     * - DA_THANH_TOAN + CHUA_GACH_NO: đã thu tiền nhưng chưa gạch nợ Viettel
+     * - INCONSISTENT / COLLECTED_NOT_MARKED từ import đối chiếu
      */
     public Page<CustomerBillingRecord> getWarnings(Long periodId, Pageable pageable) {
         return recordRepository.findWarningsByPeriod(periodId, pageable);
@@ -168,11 +176,12 @@ public class CustomerRecordService {
 
     /**
      * Lấy dữ liệu đầy đủ để Mobile App render bill in.
+     * Chỉ lấy được khi đã thu tiền (collectionStatus = DA_THANH_TOAN).
      */
     public ResBillDataDTO getBillData(Long id, User currentUser) {
         CustomerBillingRecord record = getById(id, currentUser);
 
-        if (record.getStatus() == BillingRecordStatusEnum.CHUA_THU) {
+        if (record.getCollectionStatus() == CollectionStatusEnum.CHUA_THU) {
             throw new IllegalStateException("Chưa thu tiền, không thể lấy dữ liệu in bill");
         }
 
@@ -213,7 +222,8 @@ public class CustomerRecordService {
             r.getProvince(), r.getWard(), r.getHamlet(), r.getStreet(), r.getFullAddress(),
             r.getAssignedConsultant() != null ? r.getAssignedConsultant().getId() : null,
             r.getAssignedConsultant() != null ? r.getAssignedConsultant().getFullName() : null,
-            r.getStatus(),
+            r.getCollectionStatus(),
+            r.getDebtStatus(),
             r.getCollectedAmount(),
             r.getCollectedBy() != null ? r.getCollectedBy().getFullName() : null,
             r.getCollectedAt(), r.getBillPrintedAt(),

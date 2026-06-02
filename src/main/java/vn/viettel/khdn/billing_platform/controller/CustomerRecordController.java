@@ -17,7 +17,8 @@ import vn.viettel.khdn.billing_platform.model.dto.ReqCreateCustomerRecordDTO;
 import vn.viettel.khdn.billing_platform.model.dto.ReqPrintBillDTO;
 import vn.viettel.khdn.billing_platform.model.dto.ResBillDataDTO;
 import vn.viettel.khdn.billing_platform.model.dto.ResCustomerRecordDTO;
-import vn.viettel.khdn.billing_platform.model.enums.BillingRecordStatusEnum;
+import vn.viettel.khdn.billing_platform.model.enums.CollectionStatusEnum;
+import vn.viettel.khdn.billing_platform.model.enums.DebtStatusEnum;
 import vn.viettel.khdn.billing_platform.repository.UserRepository;
 import vn.viettel.khdn.billing_platform.service.CustomerRecordService;
 import vn.viettel.khdn.billing_platform.service.ImportService;
@@ -57,7 +58,8 @@ public class CustomerRecordController {
     @GetMapping
     public ResponseEntity<Page<ResCustomerRecordDTO>> getRecords(
             @RequestParam(value = "periodId", required = false) Long periodId,
-            @RequestParam(value = "status", required = false) BillingRecordStatusEnum status,
+            @RequestParam(value = "collectionStatus", required = false) CollectionStatusEnum collectionStatus,
+            @RequestParam(value = "debtStatus", required = false) DebtStatusEnum debtStatus,
             @RequestParam(value = "province", required = false) String province,
             @RequestParam(value = "ward", required = false) String ward,
             @RequestParam(value = "hamlet", required = false) String hamlet,
@@ -68,7 +70,7 @@ public class CustomerRecordController {
 
         User currentUser = getCurrentUser();
         Page<CustomerBillingRecord> records = recordService.search(
-            currentUser, periodId, status,
+            currentUser, periodId, collectionStatus, debtStatus,
             province, ward, hamlet, street, search,
             PageRequest.of(page, size, Sort.by("createdAt").descending()));
 

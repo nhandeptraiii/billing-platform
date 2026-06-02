@@ -3,7 +3,8 @@ package vn.viettel.khdn.billing_platform.model.dto;
 import java.math.BigDecimal;
 import java.time.Instant;
 
-import vn.viettel.khdn.billing_platform.model.enums.BillingRecordStatusEnum;
+import vn.viettel.khdn.billing_platform.model.enums.CollectionStatusEnum;
+import vn.viettel.khdn.billing_platform.model.enums.DebtStatusEnum;
 import vn.viettel.khdn.billing_platform.model.enums.SyncWarningEnum;
 
 public record ResCustomerRecordDTO(
@@ -30,7 +31,8 @@ public record ResCustomerRecordDTO(
     String assignedConsultantName,
 
     // Trạng thái
-    BillingRecordStatusEnum status,
+    CollectionStatusEnum collectionStatus,   // Trạng thái thu tiền
+    DebtStatusEnum debtStatus,               // Trạng thái gạch nợ Viettel
 
     // Thu tiền
     BigDecimal collectedAmount,

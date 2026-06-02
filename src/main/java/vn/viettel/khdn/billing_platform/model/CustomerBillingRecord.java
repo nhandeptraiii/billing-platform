@@ -6,7 +6,8 @@ import java.time.Instant;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
-import vn.viettel.khdn.billing_platform.model.enums.BillingRecordStatusEnum;
+import vn.viettel.khdn.billing_platform.model.enums.CollectionStatusEnum;
+import vn.viettel.khdn.billing_platform.model.enums.DebtStatusEnum;
 import vn.viettel.khdn.billing_platform.model.enums.SyncWarningEnum;
 
 /**
@@ -74,10 +75,15 @@ public class CustomerBillingRecord {
     @JoinColumn(name = "assigned_consultant_id")
     private User assignedConsultant;    // Tư vấn viên phụ trách
 
-    // ---- Trạng thái nghiệp vụ ----
+    // ---- Trạng thái thu tiền (người thu cước) ----
     @Enumerated(EnumType.STRING)
     @Column(length = 20, nullable = false)
-    private BillingRecordStatusEnum status = BillingRecordStatusEnum.CHUA_THU;
+    private CollectionStatusEnum collectionStatus = CollectionStatusEnum.CHUA_THU;
+
+    // ---- Trạng thái gạch nợ (hệ thống Viettel) ----
+    @Enumerated(EnumType.STRING)
+    @Column(length = 20, nullable = false)
+    private DebtStatusEnum debtStatus = DebtStatusEnum.CHUA_GACH_NO;
 
     // ---- Thông tin thu tiền (điền khi bấm "In bill") ----
     @Column(precision = 15, scale = 0)

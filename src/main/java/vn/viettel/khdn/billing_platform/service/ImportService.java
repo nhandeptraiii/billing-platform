@@ -15,7 +15,8 @@ import vn.viettel.khdn.billing_platform.model.BillingPeriod;
 import vn.viettel.khdn.billing_platform.model.CustomerBillingRecord;
 import vn.viettel.khdn.billing_platform.model.User;
 import vn.viettel.khdn.billing_platform.model.dto.ImportResultDTO;
-import vn.viettel.khdn.billing_platform.model.enums.BillingRecordStatusEnum;
+import vn.viettel.khdn.billing_platform.model.enums.CollectionStatusEnum;
+import vn.viettel.khdn.billing_platform.model.enums.DebtStatusEnum;
 import vn.viettel.khdn.billing_platform.model.enums.SyncWarningEnum;
 import vn.viettel.khdn.billing_platform.repository.BillingPeriodRepository;
 import vn.viettel.khdn.billing_platform.repository.CustomerBillingRecordRepository;
@@ -243,7 +244,8 @@ public class ImportService {
                     record.setAmountDue(amount != null ? amount : BigDecimal.ZERO);
                     record.setServiceType(serviceType.isBlank() ? null : serviceType);
                     record.setAssignedConsultant(consultant);
-                    record.setStatus(BillingRecordStatusEnum.CHUA_THU);
+                    record.setCollectionStatus(CollectionStatusEnum.CHUA_THU);
+                    record.setDebtStatus(DebtStatusEnum.CHUA_GACH_NO);
                     record.setSyncWarning(SyncWarningEnum.NONE);
                     recordRepository.save(record);
 
@@ -347,16 +349,15 @@ public class ImportService {
                         continue;
                     }
 
-                    BillingRecordStatusEnum sysStatus = record.getStatus();
-
                     if (fileIsMarked) {
-                        if (sysStatus == BillingRecordStatusEnum.DA_GACH_NO) {
-                            // TH1: Cả 2 đều gạch nợ → OK
+                        if (record.getDebtStatus() == DebtStatusEnum.DA_GACH_NO) {
+                            // debtStatus = DA_GACH_NO + Viettel đã gạch → OK
                             validCount++;
 
                         } else {
-                            // TH2 & TH3: File đã gạch nợ, HT chưa → Auto update (file Viettel là chuẩn)
-                            record.setStatus(BillingRecordStatusEnum.DA_GACH_NO);
+                            // debtStatus = CHUA_GACH_NO + Viettel đã gạch → Auto set debtStatus=DA_GACH_NO
+                            // Áp dụng cho cả DA_THANH_TOAN và CHUA_THU (KH tự trả qua app/thẻ)
+                            record.setDebtStatus(DebtStatusEnum.DA_GACH_NO);
                             record.setDebtMarkedAt(Instant.now());
                             record.setSyncWarning(SyncWarningEnum.NONE);
                             record.setSyncWarningNote(null);
@@ -366,8 +367,8 @@ public class ImportService {
 
                     } else {
                         // File CHƯA gạch nợ
-                        if (sysStatus == BillingRecordStatusEnum.DA_GACH_NO) {
-                            // TH4: HT gạch nợ nhưng Viettel chưa → INCONSISTENT
+                        if (record.getDebtStatus() == DebtStatusEnum.DA_GACH_NO) {
+                            // HT gạch nợ nhưng Viettel chưa → INCONSISTENT
                             record.setSyncWarning(SyncWarningEnum.INCONSISTENT);
                             record.setSyncWarningNote(
                                 "Hệ thống ghi 'Đã gạch nợ' nhưng báo cáo Viettel chưa ghi nhận. "
@@ -375,8 +376,8 @@ public class ImportService {
                             recordRepository.save(record);
                             warningCount++;
 
-                        } else if (sysStatus == BillingRecordStatusEnum.DA_THANH_TOAN) {
-                            // TH5: Đã thu tiền/thanh toán nhưng chưa gạch trên Viettel → COLLECTED_NOT_MARKED
+                        } else if (record.getCollectionStatus() == CollectionStatusEnum.DA_THANH_TOAN) {
+                            // Đã thu tiền nhưng chưa gạch trên Viettel → COLLECTED_NOT_MARKED
                             record.setSyncWarning(SyncWarningEnum.COLLECTED_NOT_MARKED);
                             record.setSyncWarningNote(
                                 "Đã thu tiền và in bill nhưng chưa gạch nợ trên hệ thống Viettel. "
@@ -385,7 +386,7 @@ public class ImportService {
                             warningCount++;
 
                         }
-                        // TH6: CHUA_THU + file chưa gạch → bỏ qua (bình thường)
+                        // CHUA_THU + CHUA_GACH_NO + file chưa gạch → bỏ qua (bình thường)
                     }
 
                 } catch (Exception e) {
