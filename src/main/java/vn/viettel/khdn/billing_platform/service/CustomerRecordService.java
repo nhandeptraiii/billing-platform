@@ -207,7 +207,8 @@ public class CustomerRecordService {
             record.getAmountDue(),
             record.getCollectedAmount(),
             record.getCollectedAt(),
-            record.getCollectedBy() != null ? record.getCollectedBy().getFullName() : ""
+            record.getCollectedBy() != null ? record.getCollectedBy().getFullName() : "",
+            record.getBillPrintedAt()
         );
     }
 

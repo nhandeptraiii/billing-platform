@@ -28,6 +28,7 @@ public record ResBillDataDTO(
     BigDecimal amountDue,
     BigDecimal collectedAmount,
     Instant collectedAt,        // Ngày thu
-    String collectedByName      // Người thu
+    String collectedByName,     // Người thu
+    Instant billPrintedAt       // Ngày giờ in bill
 ) {}
 
