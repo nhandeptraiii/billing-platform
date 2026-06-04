@@ -29,9 +29,6 @@ public class StoreConfig {
     @Column(length = 20)
     private String hotline;     // Số điện thoại hotline
 
-    @Column(length = 500)
-    private String qrImagePath; // Đường dẫn ảnh QR chuyển khoản (null nếu không có)
-
     @Column(columnDefinition = "TEXT")
     private String adsText;     // Nội dung quảng cáo in dưới bill
 

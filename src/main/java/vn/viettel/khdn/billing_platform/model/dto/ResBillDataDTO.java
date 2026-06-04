@@ -11,7 +11,6 @@ public record ResBillDataDTO(
     String storeName,
     String storeAddress,
     String hotline,
-    String qrImageUrl,  // URL đầy đủ đến ảnh QR (null nếu không có)
     String adsText,
 
     // Thông tin khách hàng

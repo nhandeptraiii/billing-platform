@@ -3,6 +3,7 @@ package vn.viettel.khdn.billing_platform.model;
 import java.time.Instant;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 
 import jakarta.persistence.*;
 import jakarta.validation.constraints.Pattern;
@@ -16,6 +17,7 @@ import vn.viettel.khdn.billing_platform.model.enums.RoleEnum;
 @Table(name = "users", uniqueConstraints = {
     @UniqueConstraint(columnNames = "username")
 })
+@JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
 public class User {
 
     @Id

@@ -188,15 +188,10 @@ public class CustomerRecordService {
         StoreConfig store = storeConfigRepository.findFirstByOrderByIdAsc()
             .orElse(new StoreConfig()); // Trả về config rỗng nếu chưa cấu hình
 
-        String qrUrl = store.getQrImagePath() != null
-            ? "/uploads/" + store.getQrImagePath()
-            : null;
-
         return new ResBillDataDTO(
             store.getStoreName(),
             store.getAddress(),
             store.getHotline(),
-            qrUrl,
             store.getAdsText(),
             record.getCustomerCode(),
             record.getCustomerName(),
