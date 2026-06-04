@@ -1,8 +1,16 @@
 package vn.viettel.khdn.billing_platform.service;
 
+import java.io.ByteArrayOutputStream;
 import java.time.Instant;
+import java.time.LocalDate;
+import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
 import java.util.List;
 
+import org.apache.poi.ss.usermodel.Row;
+import org.apache.poi.ss.usermodel.Sheet;
+import org.apache.poi.ss.usermodel.Workbook;
+import org.apache.poi.xssf.streaming.SXSSFWorkbook;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.security.access.AccessDeniedException;
@@ -54,15 +62,23 @@ public class CustomerRecordService {
                                                CollectionStatusEnum collectionStatus,
                                                DebtStatusEnum debtStatus,
                                                Long assignedUserId,
+                                               LocalDate billPrintedDate,
                                                String search, Pageable pageable) {
+        Instant startOfDay = null;
+        Instant endOfDay = null;
+        if (billPrintedDate != null) {
+            startOfDay = billPrintedDate.atStartOfDay(ZoneId.of("Asia/Ho_Chi_Minh")).toInstant();
+            endOfDay = billPrintedDate.plusDays(1).atStartOfDay(ZoneId.of("Asia/Ho_Chi_Minh")).toInstant();
+        }
+
         if (currentUser.getRole() == RoleEnum.MANAGER) {
             return recordRepository.searchAll(
                 periodId, collectionStatus, debtStatus, assignedUserId,
-                search, pageable);
+                startOfDay, endOfDay, search, pageable);
         } else {
             return recordRepository.searchByConsultant(
                 currentUser.getId(), periodId, collectionStatus, debtStatus,
-                search, pageable);
+                startOfDay, endOfDay, search, pageable);
         }
     }
 
@@ -172,6 +188,80 @@ public class CustomerRecordService {
         }
     }
 
+    @org.springframework.transaction.annotation.Transactional
+    public int bulkMarkDebtWithFilter(User currentUser, Long periodId, CollectionStatusEnum collectionStatus,
+                                      DebtStatusEnum debtStatus, Long assignedUserId,
+                                      LocalDate billPrintedDate, String search) {
+        Instant startOfDay = null;
+        Instant endOfDay = null;
+        if (billPrintedDate != null) {
+            startOfDay = billPrintedDate.atStartOfDay(ZoneId.of("Asia/Ho_Chi_Minh")).toInstant();
+            endOfDay = billPrintedDate.plusDays(1).atStartOfDay(ZoneId.of("Asia/Ho_Chi_Minh")).toInstant();
+        }
+
+        List<Long> ids;
+        if (currentUser.getRole() == RoleEnum.MANAGER) {
+            ids = recordRepository.findAllIdsAll(periodId, collectionStatus, debtStatus, assignedUserId, startOfDay, endOfDay, search);
+        } else {
+            ids = recordRepository.findAllIdsByConsultant(currentUser.getId(), periodId, collectionStatus, debtStatus, startOfDay, endOfDay, search);
+        }
+
+        if (ids.isEmpty()) return 0;
+
+        List<CustomerBillingRecord> records = recordRepository.findAllById(ids);
+        int updatedCount = 0;
+        Instant now = Instant.now();
+        for (CustomerBillingRecord record : records) {
+            if (record.getDebtStatus() != DebtStatusEnum.DA_GACH_NO) {
+                record.setDebtStatus(DebtStatusEnum.DA_GACH_NO);
+                record.setDebtMarkedBy(currentUser);
+                record.setDebtMarkedAt(now);
+                record.setSyncWarning(SyncWarningEnum.NONE);
+                record.setSyncWarningNote(null);
+                updatedCount++;
+            }
+        }
+        recordRepository.saveAll(records);
+        return updatedCount;
+    }
+
+    @org.springframework.transaction.annotation.Transactional
+    public int bulkPayWithFilter(User currentUser, Long periodId, CollectionStatusEnum collectionStatus,
+                                 DebtStatusEnum debtStatus, Long assignedUserId,
+                                 LocalDate billPrintedDate, String search) {
+        Instant startOfDay = null;
+        Instant endOfDay = null;
+        if (billPrintedDate != null) {
+            startOfDay = billPrintedDate.atStartOfDay(ZoneId.of("Asia/Ho_Chi_Minh")).toInstant();
+            endOfDay = billPrintedDate.plusDays(1).atStartOfDay(ZoneId.of("Asia/Ho_Chi_Minh")).toInstant();
+        }
+
+        List<Long> ids;
+        if (currentUser.getRole() == RoleEnum.MANAGER) {
+            ids = recordRepository.findAllIdsAll(periodId, collectionStatus, debtStatus, assignedUserId, startOfDay, endOfDay, search);
+        } else {
+            ids = recordRepository.findAllIdsByConsultant(currentUser.getId(), periodId, collectionStatus, debtStatus, startOfDay, endOfDay, search);
+        }
+
+        if (ids.isEmpty()) return 0;
+
+        List<CustomerBillingRecord> records = recordRepository.findAllById(ids);
+        int updatedCount = 0;
+        Instant now = Instant.now();
+        for (CustomerBillingRecord record : records) {
+            if (record.getCollectionStatus() != CollectionStatusEnum.DA_THANH_TOAN) {
+                record.setCollectionStatus(CollectionStatusEnum.DA_THANH_TOAN);
+                record.setCollectedAmount(record.getAmountDue()); // Thu bằng số phải thu
+                record.setCollectedBy(currentUser);
+                record.setCollectedAt(now);
+                record.setBillPrintedAt(now);
+                updatedCount++;
+            }
+        }
+        recordRepository.saveAll(records);
+        return updatedCount;
+    }
+
     /**
      * Lấy danh sách cảnh báo:
      * - DA_THANH_TOAN + CHUA_GACH_NO: đã thu tiền nhưng chưa gạch nợ Viettel
@@ -236,5 +326,52 @@ public class CustomerRecordService {
             r.getSyncWarning(), r.getSyncWarningNote(),
             r.getCreatedAt(), r.getUpdatedAt()
         );
+    }
+
+    public byte[] exportExcel(User currentUser, Long periodId, CollectionStatusEnum collectionStatus,
+                              DebtStatusEnum debtStatus, Long assignedUserId, LocalDate billPrintedDate, String search) {
+        // Lấy tất cả records dựa theo bộ lọc (không phân trang) bằng cách gọi search với size max
+        Page<CustomerBillingRecord> pageResult = search(currentUser, periodId, collectionStatus, debtStatus,
+            assignedUserId, billPrintedDate, search, org.springframework.data.domain.PageRequest.of(0, Integer.MAX_VALUE));
+        
+        List<CustomerBillingRecord> records = pageResult.getContent();
+        
+        try (Workbook workbook = new SXSSFWorkbook(100); ByteArrayOutputStream out = new ByteArrayOutputStream()) {
+            Sheet sheet = workbook.createSheet("Danh sách khách hàng");
+
+            // Header
+            Row headerRow = sheet.createRow(0);
+            String[] headers = {"Mã KH", "Tên KH", "Số điện thoại", "Số TB", "Tiền phải thu", "Tiền thực thu", "Ngày in bill", "Trạng thái thu", "Trạng thái gạch nợ", "Nhân viên"};
+            for (int i = 0; i < headers.length; i++) {
+                headerRow.createCell(i).setCellValue(headers[i]);
+            }
+
+            DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm:ss").withZone(ZoneId.of("Asia/Ho_Chi_Minh"));
+
+            int rowIdx = 1;
+            for (CustomerBillingRecord r : records) {
+                Row row = sheet.createRow(rowIdx++);
+                row.createCell(0).setCellValue(r.getCustomerCode() != null ? r.getCustomerCode() : "");
+                row.createCell(1).setCellValue(r.getCustomerName() != null ? r.getCustomerName() : "");
+                row.createCell(2).setCellValue(r.getPhoneNumber() != null ? r.getPhoneNumber() : "");
+                row.createCell(3).setCellValue(r.getSubscriberNumber() != null ? r.getSubscriberNumber() : "");
+                row.createCell(4).setCellValue(r.getAmountDue() != null ? r.getAmountDue().doubleValue() : 0);
+                row.createCell(5).setCellValue(r.getCollectedAmount() != null ? r.getCollectedAmount().doubleValue() : 0);
+                
+                String printedDate = r.getBillPrintedAt() != null ? formatter.format(r.getBillPrintedAt()) : "";
+                row.createCell(6).setCellValue(printedDate);
+                
+                row.createCell(7).setCellValue(r.getCollectionStatus() != null ? r.getCollectionStatus().name() : "");
+                row.createCell(8).setCellValue(r.getDebtStatus() != null ? r.getDebtStatus().name() : "");
+                
+                String consultant = r.getAssignedConsultant() != null ? r.getAssignedConsultant().getFullName() : "";
+                row.createCell(9).setCellValue(consultant);
+            }
+            
+            workbook.write(out);
+            return out.toByteArray();
+        } catch (Exception e) {
+            throw new RuntimeException("Lỗi khi tạo file Excel: " + e.getMessage(), e);
+        }
     }
 }

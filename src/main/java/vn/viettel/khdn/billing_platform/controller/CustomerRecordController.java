@@ -24,7 +24,10 @@ import vn.viettel.khdn.billing_platform.service.CustomerRecordService;
 import vn.viettel.khdn.billing_platform.service.ImportService;
 import vn.viettel.khdn.billing_platform.util.SecurityUtil;
 
+import java.time.LocalDate;
 import java.util.List;
+
+import org.springframework.format.annotation.DateTimeFormat;
 
 @RestController
 @RequestMapping("/records")
@@ -61,6 +64,7 @@ public class CustomerRecordController {
             @RequestParam(value = "collectionStatus", required = false) CollectionStatusEnum collectionStatus,
             @RequestParam(value = "debtStatus", required = false) DebtStatusEnum debtStatus,
             @RequestParam(value = "assignedUserId", required = false) Long assignedUserId,
+            @RequestParam(value = "billPrintedDate", required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate billPrintedDate,
             @RequestParam(value = "search", required = false) String search,
             @RequestParam(value = "page", defaultValue = "0") int page,
             @RequestParam(value = "size", defaultValue = "20") int size) {
@@ -68,10 +72,32 @@ public class CustomerRecordController {
         User currentUser = getCurrentUser();
         Page<CustomerBillingRecord> records = recordService.search(
             currentUser, periodId, collectionStatus, debtStatus, assignedUserId,
-            search,
+            billPrintedDate, search,
             PageRequest.of(page, size, Sort.by("createdAt").descending()));
 
         return ResponseEntity.ok(records.map(recordService::toDTO));
+    }
+
+    /**
+     * GET /records/export
+     * Xuất Excel dựa trên bộ lọc
+     */
+    @GetMapping("/export")
+    public ResponseEntity<byte[]> exportRecords(
+            @RequestParam(value = "periodId", required = false) Long periodId,
+            @RequestParam(value = "collectionStatus", required = false) CollectionStatusEnum collectionStatus,
+            @RequestParam(value = "debtStatus", required = false) DebtStatusEnum debtStatus,
+            @RequestParam(value = "assignedUserId", required = false) Long assignedUserId,
+            @RequestParam(value = "billPrintedDate", required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate billPrintedDate,
+            @RequestParam(value = "search", required = false) String search) {
+
+        User currentUser = getCurrentUser();
+        byte[] data = recordService.exportExcel(currentUser, periodId, collectionStatus, debtStatus, assignedUserId, billPrintedDate, search);
+
+        return ResponseEntity.ok()
+            .header(org.springframework.http.HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=danh_sach_khach_hang.xlsx")
+            .header(org.springframework.http.HttpHeaders.CONTENT_TYPE, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+            .body(data);
     }
 
     /**
@@ -128,6 +154,48 @@ public class CustomerRecordController {
         int count = recordService.markDebtByPeriod(periodId, currentUser);
         return ResponseEntity.ok(java.util.Map.of(
                 "message", "Đã gạch nợ thành công " + count + " bản ghi trong kỳ",
+                "updatedCount", count
+        ));
+    }
+
+    /**
+     * PATCH /records/bulk-mark-debt/filter
+     * Gạch nợ hàng loạt dựa trên bộ lọc
+     */
+    @PatchMapping("/bulk-mark-debt/filter")
+    public ResponseEntity<java.util.Map<String, Object>> bulkMarkDebtWithFilter(
+            @RequestParam(value = "periodId", required = false) Long periodId,
+            @RequestParam(value = "collectionStatus", required = false) CollectionStatusEnum collectionStatus,
+            @RequestParam(value = "debtStatus", required = false) DebtStatusEnum debtStatus,
+            @RequestParam(value = "assignedUserId", required = false) Long assignedUserId,
+            @RequestParam(value = "billPrintedDate", required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate billPrintedDate,
+            @RequestParam(value = "search", required = false) String search) {
+        
+        User currentUser = getCurrentUser();
+        int count = recordService.bulkMarkDebtWithFilter(currentUser, periodId, collectionStatus, debtStatus, assignedUserId, billPrintedDate, search);
+        return ResponseEntity.ok(java.util.Map.of(
+                "message", "Đã gạch nợ thành công " + count + " bản ghi theo bộ lọc",
+                "updatedCount", count
+        ));
+    }
+
+    /**
+     * PATCH /records/bulk-pay/filter
+     * Thanh toán hàng loạt dựa trên bộ lọc
+     */
+    @PatchMapping("/bulk-pay/filter")
+    public ResponseEntity<java.util.Map<String, Object>> bulkPayWithFilter(
+            @RequestParam(value = "periodId", required = false) Long periodId,
+            @RequestParam(value = "collectionStatus", required = false) CollectionStatusEnum collectionStatus,
+            @RequestParam(value = "debtStatus", required = false) DebtStatusEnum debtStatus,
+            @RequestParam(value = "assignedUserId", required = false) Long assignedUserId,
+            @RequestParam(value = "billPrintedDate", required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate billPrintedDate,
+            @RequestParam(value = "search", required = false) String search) {
+        
+        User currentUser = getCurrentUser();
+        int count = recordService.bulkPayWithFilter(currentUser, periodId, collectionStatus, debtStatus, assignedUserId, billPrintedDate, search);
+        return ResponseEntity.ok(java.util.Map.of(
+                "message", "Đã thanh toán thành công " + count + " bản ghi theo bộ lọc",
                 "updatedCount", count
         ));
     }

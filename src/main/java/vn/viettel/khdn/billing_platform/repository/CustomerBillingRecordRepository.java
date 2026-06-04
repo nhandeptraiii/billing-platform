@@ -55,6 +55,8 @@ public interface CustomerBillingRecordRepository extends JpaRepository<CustomerB
           AND (:collectionStatus IS NULL OR r.collectionStatus = :collectionStatus)
           AND (:debtStatus IS NULL OR r.debtStatus = :debtStatus)
           AND (:assignedUserId IS NULL OR c.id = :assignedUserId)
+          AND (:startOfDay IS NULL OR r.billPrintedAt >= :startOfDay)
+          AND (:endOfDay IS NULL OR r.billPrintedAt < :endOfDay)
           AND (:search IS NULL OR
                LOWER(r.customerName) LIKE LOWER(CONCAT('%', :search, '%')) OR
                r.customerCode LIKE CONCAT('%', :search, '%') OR
@@ -66,8 +68,34 @@ public interface CustomerBillingRecordRepository extends JpaRepository<CustomerB
             @Param("collectionStatus") CollectionStatusEnum collectionStatus,
             @Param("debtStatus") DebtStatusEnum debtStatus,
             @Param("assignedUserId") Long assignedUserId,
+            @Param("startOfDay") java.time.Instant startOfDay,
+            @Param("endOfDay") java.time.Instant endOfDay,
             @Param("search") String search,
             Pageable pageable);
+
+    @Query("""
+        SELECT r.id FROM CustomerBillingRecord r
+        LEFT JOIN r.assignedConsultant c
+        WHERE (:periodId IS NULL OR r.billingPeriod.id = :periodId)
+          AND (:collectionStatus IS NULL OR r.collectionStatus = :collectionStatus)
+          AND (:debtStatus IS NULL OR r.debtStatus = :debtStatus)
+          AND (:assignedUserId IS NULL OR c.id = :assignedUserId)
+          AND (:startOfDay IS NULL OR r.billPrintedAt >= :startOfDay)
+          AND (:endOfDay IS NULL OR r.billPrintedAt < :endOfDay)
+          AND (:search IS NULL OR
+               LOWER(r.customerName) LIKE LOWER(CONCAT('%', :search, '%')) OR
+               r.customerCode LIKE CONCAT('%', :search, '%') OR
+               r.subscriberNumber LIKE CONCAT('%', :search, '%') OR
+               r.phoneNumber LIKE CONCAT('%', :search, '%'))
+        """)
+    List<Long> findAllIdsAll(
+            @Param("periodId") Long periodId,
+            @Param("collectionStatus") CollectionStatusEnum collectionStatus,
+            @Param("debtStatus") DebtStatusEnum debtStatus,
+            @Param("assignedUserId") Long assignedUserId,
+            @Param("startOfDay") java.time.Instant startOfDay,
+            @Param("endOfDay") java.time.Instant endOfDay,
+            @Param("search") String search);
 
     // CONSULTANT chỉ thấy KH của mình
     @Query("""
@@ -76,6 +104,8 @@ public interface CustomerBillingRecordRepository extends JpaRepository<CustomerB
           AND (:periodId IS NULL OR r.billingPeriod.id = :periodId)
           AND (:collectionStatus IS NULL OR r.collectionStatus = :collectionStatus)
           AND (:debtStatus IS NULL OR r.debtStatus = :debtStatus)
+          AND (:startOfDay IS NULL OR r.billPrintedAt >= :startOfDay)
+          AND (:endOfDay IS NULL OR r.billPrintedAt < :endOfDay)
           AND (:search IS NULL OR
                LOWER(r.customerName) LIKE LOWER(CONCAT('%', :search, '%')) OR
                r.customerCode LIKE CONCAT('%', :search, '%') OR
@@ -87,8 +117,33 @@ public interface CustomerBillingRecordRepository extends JpaRepository<CustomerB
             @Param("periodId") Long periodId,
             @Param("collectionStatus") CollectionStatusEnum collectionStatus,
             @Param("debtStatus") DebtStatusEnum debtStatus,
+            @Param("startOfDay") java.time.Instant startOfDay,
+            @Param("endOfDay") java.time.Instant endOfDay,
             @Param("search") String search,
             Pageable pageable);
+
+    @Query("""
+        SELECT r.id FROM CustomerBillingRecord r
+        WHERE r.assignedConsultant.id = :consultantId
+          AND (:periodId IS NULL OR r.billingPeriod.id = :periodId)
+          AND (:collectionStatus IS NULL OR r.collectionStatus = :collectionStatus)
+          AND (:debtStatus IS NULL OR r.debtStatus = :debtStatus)
+          AND (:startOfDay IS NULL OR r.billPrintedAt >= :startOfDay)
+          AND (:endOfDay IS NULL OR r.billPrintedAt < :endOfDay)
+          AND (:search IS NULL OR
+               LOWER(r.customerName) LIKE LOWER(CONCAT('%', :search, '%')) OR
+               r.customerCode LIKE CONCAT('%', :search, '%') OR
+               r.subscriberNumber LIKE CONCAT('%', :search, '%') OR
+               r.phoneNumber LIKE CONCAT('%', :search, '%'))
+        """)
+    List<Long> findAllIdsByConsultant(
+            @Param("consultantId") Long consultantId,
+            @Param("periodId") Long periodId,
+            @Param("collectionStatus") CollectionStatusEnum collectionStatus,
+            @Param("debtStatus") DebtStatusEnum debtStatus,
+            @Param("startOfDay") java.time.Instant startOfDay,
+            @Param("endOfDay") java.time.Instant endOfDay,
+            @Param("search") String search);
 
     // Thống kê tiến độ theo kỳ
     @Query("""
