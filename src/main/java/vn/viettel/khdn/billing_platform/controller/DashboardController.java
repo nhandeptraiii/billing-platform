@@ -24,20 +24,20 @@ public class DashboardController {
 
     @GetMapping("/overview")
     @PreAuthorize("hasAnyAuthority('MANAGER', 'ADMIN')")
-    public ResponseEntity<ResDashboardOverviewDTO> getOverview(@RequestParam Long periodId) {
+    public ResponseEntity<ResDashboardOverviewDTO> getOverview(@RequestParam("periodId") Long periodId) {
         return ResponseEntity.ok(dashboardService.getDashboardOverview(periodId));
     }
 
     @GetMapping("/consultants")
     @PreAuthorize("hasAnyAuthority('MANAGER', 'ADMIN')")
-    public ResponseEntity<List<ResConsultantPerformanceDTO>> getConsultantPerformance(@RequestParam Long periodId) {
+    public ResponseEntity<List<ResConsultantPerformanceDTO>> getConsultantPerformance(@RequestParam("periodId") Long periodId) {
         return ResponseEntity.ok(dashboardService.getConsultantPerformance(periodId));
     }
 
     @GetMapping("/warnings")
     @PreAuthorize("hasAnyAuthority('MANAGER', 'ADMIN')")
     public ResponseEntity<Page<CustomerBillingRecord>> getWarnings(
-            @RequestParam Long periodId,
+            @RequestParam("periodId") Long periodId,
             Pageable pageable) {
         // Có thể map sang DTO nếu cần thiết, tạm thời trả về Page<Entity>
         // giống với các API warning khác hoặc Frontend tự xử lý fields.
