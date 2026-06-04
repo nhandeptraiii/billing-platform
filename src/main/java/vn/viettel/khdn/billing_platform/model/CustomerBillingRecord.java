@@ -20,7 +20,8 @@ import vn.viettel.khdn.billing_platform.model.enums.SyncWarningEnum;
 @Table(name = "customer_billing_records", indexes = {
     @Index(name = "idx_period_id", columnList = "billing_period_id"),
     @Index(name = "idx_assigned_consultant", columnList = "assigned_consultant_id"),
-    @Index(name = "idx_status", columnList = "status"),
+    @Index(name = "idx_collection_status", columnList = "collectionStatus"),
+    @Index(name = "idx_debt_status", columnList = "debtStatus"),
     @Index(name = "idx_customer_code", columnList = "customerCode"),
     @Index(name = "idx_subscriber_number", columnList = "subscriberNumber")
 })
