@@ -113,6 +113,39 @@
         }
       },
       "response": []
+    },
+    {
+      "name": "4. Thống kê theo ngày (Daily Stats)",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{access_token}}",
+            "type": "text"
+          }
+        ],
+        "url": {
+          "raw": "http://localhost:8080/dashboard/daily-stats?date=2026-06-04",
+          "protocol": "http",
+          "host": [
+            "localhost"
+          ],
+          "port": "8080",
+          "path": [
+            "dashboard",
+            "daily-stats"
+          ],
+          "query": [
+            {
+              "key": "date",
+              "value": "2026-06-04",
+              "description": "Ngày cần thống kê (YYYY-MM-DD), bỏ trống sẽ lấy ngày hiện tại"
+            }
+          ]
+        }
+      },
+      "response": []
     }
   ],
   "variable": [
