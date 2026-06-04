@@ -25,7 +25,6 @@ import vn.viettel.khdn.billing_platform.service.ImportService;
 import vn.viettel.khdn.billing_platform.util.SecurityUtil;
 
 import java.time.LocalDate;
-import java.util.List;
 
 import org.springframework.format.annotation.DateTimeFormat;
 
@@ -38,8 +37,8 @@ public class CustomerRecordController {
     private final UserRepository userRepository;
 
     public CustomerRecordController(CustomerRecordService recordService,
-                                    ImportService importService,
-                                    UserRepository userRepository) {
+            ImportService importService,
+            UserRepository userRepository) {
         this.recordService = recordService;
         this.importService = importService;
         this.userRepository = userRepository;
@@ -48,15 +47,16 @@ public class CustomerRecordController {
     // Helper lấy user hiện tại
     private User getCurrentUser() {
         String username = SecurityUtil.getCurrentUserLogin()
-            .orElseThrow(() -> new EntityNotFoundException("Chưa đăng nhập"));
+                .orElseThrow(() -> new EntityNotFoundException("Chưa đăng nhập"));
         return userRepository.findByUsername(username)
-            .orElseThrow(() -> new EntityNotFoundException("Không tìm thấy người dùng"));
+                .orElseThrow(() -> new EntityNotFoundException("Không tìm thấy người dùng"));
     }
 
     /**
      * GET /records
      * MANAGER: xem tất cả | CONSULTANT: xem KH của mình
-     * Query params: periodId, status, province, ward, hamlet, street, search, page, size
+     * Query params: periodId, status, province, ward, hamlet, street, search, page,
+     * size
      */
     @GetMapping
     public ResponseEntity<Page<ResCustomerRecordDTO>> getRecords(
@@ -71,9 +71,9 @@ public class CustomerRecordController {
 
         User currentUser = getCurrentUser();
         Page<CustomerBillingRecord> records = recordService.search(
-            currentUser, periodId, collectionStatus, debtStatus, assignedUserId,
-            billPrintedDate, search,
-            PageRequest.of(page, size, Sort.by("createdAt").descending()));
+                currentUser, periodId, collectionStatus, debtStatus, assignedUserId,
+                billPrintedDate, search,
+                PageRequest.of(page, size, Sort.by("createdAt").descending()));
 
         return ResponseEntity.ok(records.map(recordService::toDTO));
     }
@@ -92,12 +92,15 @@ public class CustomerRecordController {
             @RequestParam(value = "search", required = false) String search) {
 
         User currentUser = getCurrentUser();
-        byte[] data = recordService.exportExcel(currentUser, periodId, collectionStatus, debtStatus, assignedUserId, billPrintedDate, search);
+        byte[] data = recordService.exportExcel(currentUser, periodId, collectionStatus, debtStatus, assignedUserId,
+                billPrintedDate, search);
 
         return ResponseEntity.ok()
-            .header(org.springframework.http.HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=danh_sach_khach_hang.xlsx")
-            .header(org.springframework.http.HttpHeaders.CONTENT_TYPE, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
-            .body(data);
+                .header(org.springframework.http.HttpHeaders.CONTENT_DISPOSITION,
+                        "attachment; filename=danh_sach_khach_hang.xlsx")
+                .header(org.springframework.http.HttpHeaders.CONTENT_TYPE,
+                        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+                .body(data);
     }
 
     /**
@@ -154,8 +157,7 @@ public class CustomerRecordController {
         int count = recordService.markDebtByPeriod(periodId, currentUser);
         return ResponseEntity.ok(java.util.Map.of(
                 "message", "Đã gạch nợ thành công " + count + " bản ghi trong kỳ",
-                "updatedCount", count
-        ));
+                "updatedCount", count));
     }
 
     /**
@@ -170,13 +172,13 @@ public class CustomerRecordController {
             @RequestParam(value = "assignedUserId", required = false) Long assignedUserId,
             @RequestParam(value = "billPrintedDate", required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate billPrintedDate,
             @RequestParam(value = "search", required = false) String search) {
-        
+
         User currentUser = getCurrentUser();
-        int count = recordService.bulkMarkDebtWithFilter(currentUser, periodId, collectionStatus, debtStatus, assignedUserId, billPrintedDate, search);
+        int count = recordService.bulkMarkDebtWithFilter(currentUser, periodId, collectionStatus, debtStatus,
+                assignedUserId, billPrintedDate, search);
         return ResponseEntity.ok(java.util.Map.of(
                 "message", "Đã gạch nợ thành công " + count + " bản ghi theo bộ lọc",
-                "updatedCount", count
-        ));
+                "updatedCount", count));
     }
 
     /**
@@ -191,13 +193,13 @@ public class CustomerRecordController {
             @RequestParam(value = "assignedUserId", required = false) Long assignedUserId,
             @RequestParam(value = "billPrintedDate", required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate billPrintedDate,
             @RequestParam(value = "search", required = false) String search) {
-        
+
         User currentUser = getCurrentUser();
-        int count = recordService.bulkPayWithFilter(currentUser, periodId, collectionStatus, debtStatus, assignedUserId, billPrintedDate, search);
+        int count = recordService.bulkPayWithFilter(currentUser, periodId, collectionStatus, debtStatus, assignedUserId,
+                billPrintedDate, search);
         return ResponseEntity.ok(java.util.Map.of(
                 "message", "Đã thanh toán thành công " + count + " bản ghi theo bộ lọc",
-                "updatedCount", count
-        ));
+                "updatedCount", count));
     }
 
     /**
@@ -227,14 +229,17 @@ public class CustomerRecordController {
     public ResponseEntity<byte[]> downloadReconciliationTemplate() {
         byte[] data = importService.generateReconciliationTemplate();
         return ResponseEntity.ok()
-            .header(org.springframework.http.HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=mau_doi_chieu_viettel.xlsx")
-            .header(org.springframework.http.HttpHeaders.CONTENT_TYPE, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
-            .body(data);
+                .header(org.springframework.http.HttpHeaders.CONTENT_DISPOSITION,
+                        "attachment; filename=mau_doi_chieu_viettel.xlsx")
+                .header(org.springframework.http.HttpHeaders.CONTENT_TYPE,
+                        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+                .body(data);
     }
 
     /**
      * GET /records/warnings
-     * Danh sách cảnh báo: DA_THANH_TOAN chưa gạch nợ + INCONSISTENT (Hỗ trợ phân trang)
+     * Danh sách cảnh báo: DA_THANH_TOAN chưa gạch nợ + INCONSISTENT (Hỗ trợ phân
+     * trang)
      */
     @GetMapping("/warnings")
     public ResponseEntity<Page<ResCustomerRecordDTO>> getWarnings(
@@ -243,8 +248,7 @@ public class CustomerRecordController {
             @RequestParam(value = "size", defaultValue = "20") int size) {
         int safeSize = Math.min(Math.max(size, 1), 50);
         org.springframework.data.domain.Pageable pageable = org.springframework.data.domain.PageRequest.of(
-            Math.max(page, 0), safeSize, Sort.by(Sort.Order.desc("updatedAt"))
-        );
+                Math.max(page, 0), safeSize, Sort.by(Sort.Order.desc("updatedAt")));
         Page<CustomerBillingRecord> warnings = recordService.getWarnings(periodId, pageable);
         return ResponseEntity.ok(warnings.map(recordService::toDTO));
     }

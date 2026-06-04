@@ -10,7 +10,9 @@ import vn.viettel.khdn.billing_platform.model.CustomerBillingRecord;
 import vn.viettel.khdn.billing_platform.model.dto.dashboard.ResConsultantPerformanceDTO;
 import vn.viettel.khdn.billing_platform.model.dto.dashboard.ResDashboardOverviewDTO;
 import vn.viettel.khdn.billing_platform.repository.CustomerBillingRecordRepository;
+import vn.viettel.khdn.billing_platform.service.CustomerRecordService;
 import vn.viettel.khdn.billing_platform.service.DashboardService;
+import vn.viettel.khdn.billing_platform.model.dto.ResCustomerRecordDTO;
 
 import java.util.List;
 
@@ -21,6 +23,7 @@ public class DashboardController {
 
     private final DashboardService dashboardService;
     private final CustomerBillingRecordRepository recordRepository;
+    private final CustomerRecordService recordService;
 
     @GetMapping("/overview")
     @PreAuthorize("hasAnyAuthority('MANAGER', 'ADMIN')")
@@ -36,12 +39,11 @@ public class DashboardController {
 
     @GetMapping("/warnings")
     @PreAuthorize("hasAnyAuthority('MANAGER', 'ADMIN')")
-    public ResponseEntity<Page<CustomerBillingRecord>> getWarnings(
+    public ResponseEntity<Page<ResCustomerRecordDTO>> getWarnings(
             @RequestParam("periodId") Long periodId,
             Pageable pageable) {
-        // Có thể map sang DTO nếu cần thiết, tạm thời trả về Page<Entity>
-        // giống với các API warning khác hoặc Frontend tự xử lý fields.
-        return ResponseEntity.ok(recordRepository.findWarningsByPeriod(periodId, pageable));
+        Page<CustomerBillingRecord> page = recordRepository.findWarningsByPeriod(periodId, pageable);
+        return ResponseEntity.ok(page.map(recordService::toDTO));
     }
 
     @GetMapping("/daily-stats")

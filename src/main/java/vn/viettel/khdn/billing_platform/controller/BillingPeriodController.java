@@ -19,8 +19,6 @@ import vn.viettel.khdn.billing_platform.repository.UserRepository;
 import vn.viettel.khdn.billing_platform.service.ImportService;
 import vn.viettel.khdn.billing_platform.util.SecurityUtil;
 
-import java.util.List;
-
 @RestController
 @RequestMapping("/billing-periods")
 public class BillingPeriodController {
@@ -30,8 +28,8 @@ public class BillingPeriodController {
     private final UserRepository userRepository;
 
     public BillingPeriodController(BillingPeriodRepository billingPeriodRepository,
-                                   ImportService importService,
-                                   UserRepository userRepository) {
+            ImportService importService,
+            UserRepository userRepository) {
         this.billingPeriodRepository = billingPeriodRepository;
         this.importService = importService;
         this.userRepository = userRepository;
@@ -39,9 +37,9 @@ public class BillingPeriodController {
 
     private User getCurrentUser() {
         String username = SecurityUtil.getCurrentUserLogin()
-            .orElseThrow(() -> new EntityNotFoundException("Chưa đăng nhập"));
+                .orElseThrow(() -> new EntityNotFoundException("Chưa đăng nhập"));
         return userRepository.findByUsername(username)
-            .orElseThrow(() -> new EntityNotFoundException("Không tìm thấy người dùng"));
+                .orElseThrow(() -> new EntityNotFoundException("Không tìm thấy người dùng"));
     }
 
     /** GET /billing-periods — Danh sách tất cả kỳ (Hỗ trợ phân trang) */
@@ -51,10 +49,9 @@ public class BillingPeriodController {
             @RequestParam(value = "size", defaultValue = "10") int size) {
         int safeSize = Math.min(Math.max(size, 1), 50);
         Pageable pageable = PageRequest.of(
-            Math.max(page, 0),
-            safeSize,
-            Sort.by(Sort.Order.desc("year"), Sort.Order.desc("month"))
-        );
+                Math.max(page, 0),
+                safeSize,
+                Sort.by(Sort.Order.desc("year"), Sort.Order.desc("month")));
         return ResponseEntity.ok(billingPeriodRepository.findAll(pageable));
     }
 
@@ -62,8 +59,8 @@ public class BillingPeriodController {
     @GetMapping("/{id}")
     public ResponseEntity<BillingPeriod> getById(@PathVariable("id") Long id) {
         return ResponseEntity.ok(
-            billingPeriodRepository.findById(id)
-                .orElseThrow(() -> new EntityNotFoundException("Không tìm thấy kỳ ID: " + id)));
+                billingPeriodRepository.findById(id)
+                        .orElseThrow(() -> new EntityNotFoundException("Không tìm thấy kỳ ID: " + id)));
     }
 
     /**
@@ -83,9 +80,11 @@ public class BillingPeriodController {
     public ResponseEntity<byte[]> downloadImportTemplate() {
         byte[] data = importService.generateStartOfPeriodTemplate();
         return ResponseEntity.ok()
-            .header(org.springframework.http.HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=mau_import_dau_ky.xlsx")
-            .header(org.springframework.http.HttpHeaders.CONTENT_TYPE, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
-            .body(data);
+                .header(org.springframework.http.HttpHeaders.CONTENT_DISPOSITION,
+                        "attachment; filename=mau_import_dau_ky.xlsx")
+                .header(org.springframework.http.HttpHeaders.CONTENT_TYPE,
+                        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+                .body(data);
     }
 
     /** PATCH /billing-periods/{id}/close — Đóng kỳ (Manager only) */
@@ -93,7 +92,7 @@ public class BillingPeriodController {
     @PreAuthorize("hasAuthority('MANAGER')")
     public ResponseEntity<BillingPeriod> closePeriod(@PathVariable("id") Long id) {
         BillingPeriod period = billingPeriodRepository.findById(id)
-            .orElseThrow(() -> new EntityNotFoundException("Không tìm thấy kỳ ID: " + id));
+                .orElseThrow(() -> new EntityNotFoundException("Không tìm thấy kỳ ID: " + id));
 
         if (period.getStatus() == BillingPeriodStatusEnum.CLOSED) {
             throw new IllegalStateException("Kỳ này đã được đóng");
