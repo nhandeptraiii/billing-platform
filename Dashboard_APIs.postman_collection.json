@@ -17,7 +17,7 @@
           }
         ],
         "url": {
-          "raw": "http://localhost:8080/dashboard/overview?periodId=1",
+          "raw": "http://localhost:8080/dashboard/overview?month=6&year=2026",
           "protocol": "http",
           "host": [
             "localhost"
@@ -29,9 +29,14 @@
           ],
           "query": [
             {
-              "key": "periodId",
-              "value": "1",
-              "description": "ID của kỳ thu cước"
+              "key": "month",
+              "value": "6",
+              "description": "Tháng của kỳ thu cước"
+            },
+            {
+              "key": "year",
+              "value": "2026",
+              "description": "Năm của kỳ thu cước"
             }
           ]
         }
@@ -50,7 +55,7 @@
           }
         ],
         "url": {
-          "raw": "http://localhost:8080/dashboard/consultants?periodId=1",
+          "raw": "http://localhost:8080/dashboard/consultants?month=6&year=2026",
           "protocol": "http",
           "host": [
             "localhost"
@@ -62,9 +67,14 @@
           ],
           "query": [
             {
-              "key": "periodId",
-              "value": "1",
-              "description": "ID của kỳ thu cước"
+              "key": "month",
+              "value": "6",
+              "description": "Tháng của kỳ thu cước"
+            },
+            {
+              "key": "year",
+              "value": "2026",
+              "description": "Năm của kỳ thu cước"
             }
           ]
         }
@@ -83,7 +93,7 @@
           }
         ],
         "url": {
-          "raw": "http://localhost:8080/dashboard/warnings?periodId=1&page=0&size=20",
+          "raw": "http://localhost:8080/dashboard/warnings?month=6&year=2026&page=0&size=20",
           "protocol": "http",
           "host": [
             "localhost"
@@ -95,9 +105,14 @@
           ],
           "query": [
             {
-              "key": "periodId",
-              "value": "1",
-              "description": "ID của kỳ thu cước"
+              "key": "month",
+              "value": "6",
+              "description": "Tháng của kỳ thu cước"
+            },
+            {
+              "key": "year",
+              "value": "2026",
+              "description": "Năm của kỳ thu cước"
             },
             {
               "key": "page",

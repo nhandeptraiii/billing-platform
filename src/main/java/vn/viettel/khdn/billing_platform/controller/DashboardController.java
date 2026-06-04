@@ -9,6 +9,7 @@ import org.springframework.web.bind.annotation.*;
 import vn.viettel.khdn.billing_platform.model.CustomerBillingRecord;
 import vn.viettel.khdn.billing_platform.model.dto.dashboard.ResConsultantPerformanceDTO;
 import vn.viettel.khdn.billing_platform.model.dto.dashboard.ResDashboardOverviewDTO;
+import vn.viettel.khdn.billing_platform.repository.BillingPeriodRepository;
 import vn.viettel.khdn.billing_platform.repository.CustomerBillingRecordRepository;
 import vn.viettel.khdn.billing_platform.service.CustomerRecordService;
 import vn.viettel.khdn.billing_platform.service.DashboardService;
@@ -24,24 +25,53 @@ public class DashboardController {
     private final DashboardService dashboardService;
     private final CustomerBillingRecordRepository recordRepository;
     private final CustomerRecordService recordService;
+    private final BillingPeriodRepository periodRepository;
+
+    private Long resolvePeriodId(Integer month, Integer year) {
+        if (month == null || year == null) {
+            java.time.LocalDate now = java.time.LocalDate.now(java.time.ZoneId.of("Asia/Ho_Chi_Minh"));
+            if (month == null) month = now.getMonthValue();
+            if (year == null) year = now.getYear();
+        }
+        return periodRepository.findByMonthAndYear(month, year)
+            .map(vn.viettel.khdn.billing_platform.model.BillingPeriod::getId)
+            .orElse(null);
+    }
 
     @GetMapping("/overview")
     @PreAuthorize("hasAnyAuthority('MANAGER', 'ADMIN')")
-    public ResponseEntity<ResDashboardOverviewDTO> getOverview(@RequestParam("periodId") Long periodId) {
+    public ResponseEntity<ResDashboardOverviewDTO> getOverview(
+            @RequestParam(value = "month", required = false) Integer month,
+            @RequestParam(value = "year", required = false) Integer year) {
+        Long periodId = resolvePeriodId(month, year);
+        if (periodId == null) {
+            return ResponseEntity.ok(new ResDashboardOverviewDTO(0L, 0L, java.math.BigDecimal.ZERO, java.math.BigDecimal.ZERO, 0.0));
+        }
         return ResponseEntity.ok(dashboardService.getDashboardOverview(periodId));
     }
 
     @GetMapping("/consultants")
     @PreAuthorize("hasAnyAuthority('MANAGER', 'ADMIN')")
-    public ResponseEntity<List<ResConsultantPerformanceDTO>> getConsultantPerformance(@RequestParam("periodId") Long periodId) {
+    public ResponseEntity<List<ResConsultantPerformanceDTO>> getConsultantPerformance(
+            @RequestParam(value = "month", required = false) Integer month,
+            @RequestParam(value = "year", required = false) Integer year) {
+        Long periodId = resolvePeriodId(month, year);
+        if (periodId == null) {
+            return ResponseEntity.ok(java.util.Collections.emptyList());
+        }
         return ResponseEntity.ok(dashboardService.getConsultantPerformance(periodId));
     }
 
     @GetMapping("/warnings")
     @PreAuthorize("hasAnyAuthority('MANAGER', 'ADMIN')")
     public ResponseEntity<Page<ResCustomerRecordDTO>> getWarnings(
-            @RequestParam("periodId") Long periodId,
+            @RequestParam(value = "month", required = false) Integer month,
+            @RequestParam(value = "year", required = false) Integer year,
             Pageable pageable) {
+        Long periodId = resolvePeriodId(month, year);
+        if (periodId == null) {
+            return ResponseEntity.ok(Page.empty(pageable));
+        }
         Page<CustomerBillingRecord> page = recordRepository.findWarningsByPeriod(periodId, pageable);
         return ResponseEntity.ok(page.map(recordService::toDTO));
     }
