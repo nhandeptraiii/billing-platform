@@ -22,6 +22,7 @@ public record ResBillDataDTO(
     // Kỳ thanh toán & dịch vụ
     String billingPeriodName,
     String serviceType,         // Loại dịch vụ: CƯỚC VIỄN THÔNG / KỲ HÒA ĐƠN...
+    String adsContent,          // Nội dung quảng cáo từ file import
 
     // Thông tin thu tiền
     BigDecimal amountDue,

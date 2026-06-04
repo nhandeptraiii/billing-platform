@@ -70,6 +70,10 @@ public class CustomerBillingRecord {
     @Column(length = 200)
     private String serviceType;         // Loại dịch vụ (VD: CƯỚC VIỄN THÔNG, KỲ HÒA ĐƠN)
 
+    @Column(length = 1000)
+    private String adsContent;          // Nội dung quảng cáo
+
+
     // ---- Phân công ----
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "assigned_consultant_id")

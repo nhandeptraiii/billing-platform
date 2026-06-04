@@ -25,6 +25,10 @@ public record ResCustomerRecordDTO(
     String hamlet,
     String street,
     String fullAddress,
+    
+    // Dịch vụ và QC
+    String serviceType,
+    String adsContent,
 
     // Phân công
     Long assignedConsultantId,
