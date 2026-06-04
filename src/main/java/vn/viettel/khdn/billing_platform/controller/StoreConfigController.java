@@ -50,7 +50,6 @@ public class StoreConfigController {
         config.setStoreName(incoming.getStoreName());
         config.setAddress(incoming.getAddress());
         config.setHotline(incoming.getHotline());
-        config.setAdsText(incoming.getAdsText());
         config.setUpdatedBy(currentUser);
 
         return ResponseEntity.ok(storeConfigRepository.save(config));

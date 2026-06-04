@@ -29,8 +29,6 @@ public class StoreConfig {
     @Column(length = 20)
     private String hotline;     // Số điện thoại hotline
 
-    @Column(columnDefinition = "TEXT")
-    private String adsText;     // Nội dung quảng cáo in dưới bill
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "updated_by_id")

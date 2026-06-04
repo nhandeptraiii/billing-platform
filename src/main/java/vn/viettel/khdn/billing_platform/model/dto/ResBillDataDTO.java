@@ -11,7 +11,6 @@ public record ResBillDataDTO(
     String storeName,
     String storeAddress,
     String hotline,
-    String adsText,
 
     // Thông tin khách hàng
     String customerCode,

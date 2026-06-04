@@ -192,7 +192,6 @@ public class CustomerRecordService {
             store.getStoreName(),
             store.getAddress(),
             store.getHotline(),
-            store.getAdsText(),
             record.getCustomerCode(),
             record.getCustomerName(),
             record.getSubscriberNumber(),
