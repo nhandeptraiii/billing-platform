@@ -53,12 +53,13 @@ public class CustomerRecordService {
                                                Long periodId,
                                                CollectionStatusEnum collectionStatus,
                                                DebtStatusEnum debtStatus,
+                                               Long assignedUserId,
                                                String province, String ward,
                                                String hamlet, String street,
                                                String search, Pageable pageable) {
         if (currentUser.getRole() == RoleEnum.MANAGER) {
             return recordRepository.searchAll(
-                periodId, collectionStatus, debtStatus, null,
+                periodId, collectionStatus, debtStatus, assignedUserId,
                 province, ward, hamlet, street, search, pageable);
         } else {
             return recordRepository.searchByConsultant(
@@ -163,6 +164,18 @@ public class CustomerRecordService {
         record.setSyncWarningNote(null);
 
         return recordRepository.save(record);
+    }
+
+    /**
+     * Gạch nợ tất cả trong kỳ
+     */
+    @org.springframework.transaction.annotation.Transactional
+    public int markDebtByPeriod(Long periodId, User currentUser) {
+        if (currentUser.getRole() == RoleEnum.MANAGER) {
+            return recordRepository.markAllDebtByPeriodId(periodId, currentUser, Instant.now());
+        } else {
+            return recordRepository.markAllDebtByPeriodIdAndConsultant(periodId, currentUser, Instant.now(), currentUser.getId());
+        }
     }
 
     /**

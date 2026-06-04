@@ -60,6 +60,7 @@ public class CustomerRecordController {
             @RequestParam(value = "periodId", required = false) Long periodId,
             @RequestParam(value = "collectionStatus", required = false) CollectionStatusEnum collectionStatus,
             @RequestParam(value = "debtStatus", required = false) DebtStatusEnum debtStatus,
+            @RequestParam(value = "assignedUserId", required = false) Long assignedUserId,
             @RequestParam(value = "province", required = false) String province,
             @RequestParam(value = "ward", required = false) String ward,
             @RequestParam(value = "hamlet", required = false) String hamlet,
@@ -70,7 +71,7 @@ public class CustomerRecordController {
 
         User currentUser = getCurrentUser();
         Page<CustomerBillingRecord> records = recordService.search(
-            currentUser, periodId, collectionStatus, debtStatus,
+            currentUser, periodId, collectionStatus, debtStatus, assignedUserId,
             province, ward, hamlet, street, search,
             PageRequest.of(page, size, Sort.by("createdAt").descending()));
 
@@ -119,6 +120,20 @@ public class CustomerRecordController {
         User currentUser = getCurrentUser();
         CustomerBillingRecord updated = recordService.markDebt(id, currentUser);
         return ResponseEntity.ok(recordService.toDTO(updated));
+    }
+
+    /**
+     * PATCH /records/bulk-mark-debt
+     * Gạch nợ hàng loạt tất cả bản ghi trong kỳ (không phân biệt trạng thái thu)
+     */
+    @PatchMapping("/bulk-mark-debt")
+    public ResponseEntity<java.util.Map<String, Object>> bulkMarkDebt(@RequestParam("periodId") Long periodId) {
+        User currentUser = getCurrentUser();
+        int count = recordService.markDebtByPeriod(periodId, currentUser);
+        return ResponseEntity.ok(java.util.Map.of(
+                "message", "Đã gạch nợ thành công " + count + " bản ghi trong kỳ",
+                "updatedCount", count
+        ));
     }
 
     /**

@@ -126,4 +126,31 @@ public interface CustomerBillingRecordRepository extends JpaRepository<CustomerB
         GROUP BY r.assignedConsultant.id, r.assignedConsultant.fullName
         """)
     List<Object[]> getConsultantPerformanceWithTarget(@Param("periodId") Long periodId);
+
+    @org.springframework.data.jpa.repository.Modifying
+    @Query("""
+        UPDATE CustomerBillingRecord r
+        SET r.debtStatus = 'DA_GACH_NO',
+            r.debtMarkedBy = :user,
+            r.debtMarkedAt = :now,
+            r.syncWarning = 'NONE',
+            r.syncWarningNote = NULL
+        WHERE r.billingPeriod.id = :periodId
+          AND r.debtStatus != 'DA_GACH_NO'
+        """)
+    int markAllDebtByPeriodId(@Param("periodId") Long periodId, @Param("user") vn.viettel.khdn.billing_platform.model.User user, @Param("now") java.time.Instant now);
+
+    @org.springframework.data.jpa.repository.Modifying
+    @Query("""
+        UPDATE CustomerBillingRecord r
+        SET r.debtStatus = 'DA_GACH_NO',
+            r.debtMarkedBy = :user,
+            r.debtMarkedAt = :now,
+            r.syncWarning = 'NONE',
+            r.syncWarningNote = NULL
+        WHERE r.billingPeriod.id = :periodId
+          AND r.assignedConsultant.id = :consultantId
+          AND r.debtStatus != 'DA_GACH_NO'
+        """)
+    int markAllDebtByPeriodIdAndConsultant(@Param("periodId") Long periodId, @Param("user") vn.viettel.khdn.billing_platform.model.User user, @Param("now") java.time.Instant now, @Param("consultantId") Long consultantId);
 }
