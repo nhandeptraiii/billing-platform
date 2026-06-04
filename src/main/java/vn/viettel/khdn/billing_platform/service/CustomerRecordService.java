@@ -54,17 +54,15 @@ public class CustomerRecordService {
                                                CollectionStatusEnum collectionStatus,
                                                DebtStatusEnum debtStatus,
                                                Long assignedUserId,
-                                               String province, String ward,
-                                               String hamlet, String street,
                                                String search, Pageable pageable) {
         if (currentUser.getRole() == RoleEnum.MANAGER) {
             return recordRepository.searchAll(
                 periodId, collectionStatus, debtStatus, assignedUserId,
-                province, ward, hamlet, street, search, pageable);
+                search, pageable);
         } else {
             return recordRepository.searchByConsultant(
                 currentUser.getId(), periodId, collectionStatus, debtStatus,
-                province, ward, hamlet, street, search, pageable);
+                search, pageable);
         }
     }
 
@@ -93,10 +91,6 @@ public class CustomerRecordService {
         record.setSubscriberNumber(req.subscriberNumber());
         record.setPhoneNumber(req.phoneNumber());
         record.setAmountDue(req.amountDue());
-        record.setProvince(req.province());
-        record.setWard(req.ward());
-        record.setHamlet(req.hamlet());
-        record.setStreet(req.street());
         record.setFullAddress(req.fullAddress());
         record.setServiceType(req.serviceType());
 
@@ -228,7 +222,7 @@ public class CustomerRecordService {
             r.getBillingPeriod() != null ? r.getBillingPeriod().getName() : null,
             r.getCustomerCode(), r.getCustomerName(), r.getSubscriberNumber(),
             r.getPhoneNumber(), r.getAmountDue(),
-            r.getProvince(), r.getWard(), r.getHamlet(), r.getStreet(), r.getFullAddress(),
+            r.getFullAddress(),
             r.getServiceType(), r.getAdsContent(),
             r.getAssignedConsultant() != null ? r.getAssignedConsultant().getId() : null,
             r.getAssignedConsultant() != null ? r.getAssignedConsultant().getFullName() : null,

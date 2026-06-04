@@ -227,6 +227,17 @@ public class ImportService {
                         }
                     }
 
+                    String managerUsername = getCellString(row, 9);
+                    if (consultant != null && !managerUsername.isBlank()) {
+                        User manager = userRepository.findByUsername(managerUsername).orElse(null);
+                        if (manager != null) {
+                            if (consultant.getManager() == null || !consultant.getManager().getId().equals(manager.getId())) {
+                                consultant.setManager(manager);
+                                userRepository.save(consultant);
+                            }
+                        }
+                    }
+
                     CustomerBillingRecord record = new CustomerBillingRecord();
                     record.setBillingPeriod(period);
                     record.setCustomerCode(customerCode);

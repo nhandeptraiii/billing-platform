@@ -52,19 +52,6 @@ public class CustomerBillingRecord {
     @Column(precision = 15, scale = 0)
     private BigDecimal amountDue;       // Số tiền phải thu
 
-    // ---- Địa chỉ (phục vụ filter theo khu vực) ----
-    @Column(length = 100)
-    private String province;            // Tỉnh/Thành phố
-
-    @Column(length = 100)
-    private String ward;                // Xã/Phường
-
-    @Column(length = 100)
-    private String hamlet;              // Ấp/Khu vực
-
-    @Column(length = 200)
-    private String street;              // Tuyến đường
-
     @Column(length = 500)
     private String fullAddress;         // Địa chỉ đầy đủ
 

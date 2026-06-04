@@ -61,10 +61,6 @@ public class CustomerRecordController {
             @RequestParam(value = "collectionStatus", required = false) CollectionStatusEnum collectionStatus,
             @RequestParam(value = "debtStatus", required = false) DebtStatusEnum debtStatus,
             @RequestParam(value = "assignedUserId", required = false) Long assignedUserId,
-            @RequestParam(value = "province", required = false) String province,
-            @RequestParam(value = "ward", required = false) String ward,
-            @RequestParam(value = "hamlet", required = false) String hamlet,
-            @RequestParam(value = "street", required = false) String street,
             @RequestParam(value = "search", required = false) String search,
             @RequestParam(value = "page", defaultValue = "0") int page,
             @RequestParam(value = "size", defaultValue = "20") int size) {
@@ -72,7 +68,7 @@ public class CustomerRecordController {
         User currentUser = getCurrentUser();
         Page<CustomerBillingRecord> records = recordService.search(
             currentUser, periodId, collectionStatus, debtStatus, assignedUserId,
-            province, ward, hamlet, street, search,
+            search,
             PageRequest.of(page, size, Sort.by("createdAt").descending()));
 
         return ResponseEntity.ok(records.map(recordService::toDTO));

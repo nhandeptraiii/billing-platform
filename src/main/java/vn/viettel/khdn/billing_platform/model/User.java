@@ -47,6 +47,10 @@ public class User {
     @Column(length = 20, nullable = false)
     private RoleEnum role = RoleEnum.CONSULTANT;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "manager_id")
+    private User manager;
+
     private Instant createdAt;
     private Instant updatedAt;
 

@@ -55,10 +55,6 @@ public interface CustomerBillingRecordRepository extends JpaRepository<CustomerB
           AND (:collectionStatus IS NULL OR r.collectionStatus = :collectionStatus)
           AND (:debtStatus IS NULL OR r.debtStatus = :debtStatus)
           AND (:assignedUserId IS NULL OR c.id = :assignedUserId)
-          AND (:province IS NULL OR LOWER(r.province) LIKE LOWER(CONCAT('%', :province, '%')))
-          AND (:ward IS NULL OR LOWER(r.ward) LIKE LOWER(CONCAT('%', :ward, '%')))
-          AND (:hamlet IS NULL OR LOWER(r.hamlet) LIKE LOWER(CONCAT('%', :hamlet, '%')))
-          AND (:street IS NULL OR LOWER(r.street) LIKE LOWER(CONCAT('%', :street, '%')))
           AND (:search IS NULL OR
                LOWER(r.customerName) LIKE LOWER(CONCAT('%', :search, '%')) OR
                r.customerCode LIKE CONCAT('%', :search, '%') OR
@@ -70,10 +66,6 @@ public interface CustomerBillingRecordRepository extends JpaRepository<CustomerB
             @Param("collectionStatus") CollectionStatusEnum collectionStatus,
             @Param("debtStatus") DebtStatusEnum debtStatus,
             @Param("assignedUserId") Long assignedUserId,
-            @Param("province") String province,
-            @Param("ward") String ward,
-            @Param("hamlet") String hamlet,
-            @Param("street") String street,
             @Param("search") String search,
             Pageable pageable);
 
@@ -84,10 +76,6 @@ public interface CustomerBillingRecordRepository extends JpaRepository<CustomerB
           AND (:periodId IS NULL OR r.billingPeriod.id = :periodId)
           AND (:collectionStatus IS NULL OR r.collectionStatus = :collectionStatus)
           AND (:debtStatus IS NULL OR r.debtStatus = :debtStatus)
-          AND (:province IS NULL OR LOWER(r.province) LIKE LOWER(CONCAT('%', :province, '%')))
-          AND (:ward IS NULL OR LOWER(r.ward) LIKE LOWER(CONCAT('%', :ward, '%')))
-          AND (:hamlet IS NULL OR LOWER(r.hamlet) LIKE LOWER(CONCAT('%', :hamlet, '%')))
-          AND (:street IS NULL OR LOWER(r.street) LIKE LOWER(CONCAT('%', :street, '%')))
           AND (:search IS NULL OR
                LOWER(r.customerName) LIKE LOWER(CONCAT('%', :search, '%')) OR
                r.customerCode LIKE CONCAT('%', :search, '%') OR
@@ -99,10 +87,6 @@ public interface CustomerBillingRecordRepository extends JpaRepository<CustomerB
             @Param("periodId") Long periodId,
             @Param("collectionStatus") CollectionStatusEnum collectionStatus,
             @Param("debtStatus") DebtStatusEnum debtStatus,
-            @Param("province") String province,
-            @Param("ward") String ward,
-            @Param("hamlet") String hamlet,
-            @Param("street") String street,
             @Param("search") String search,
             Pageable pageable);
 
@@ -153,4 +137,16 @@ public interface CustomerBillingRecordRepository extends JpaRepository<CustomerB
           AND r.debtStatus != 'DA_GACH_NO'
         """)
     int markAllDebtByPeriodIdAndConsultant(@Param("periodId") Long periodId, @Param("user") vn.viettel.khdn.billing_platform.model.User user, @Param("now") java.time.Instant now, @Param("consultantId") Long consultantId);
+
+    // Thống kê giờ in bill đầu tiên và số lượng thu trong ngày của các tư vấn viên
+    @Query("""
+        SELECT r.assignedConsultant.id, r.assignedConsultant.fullName,
+               MIN(r.billPrintedAt),
+               COUNT(r)
+        FROM CustomerBillingRecord r
+        WHERE r.collectedAt >= :startOfDay AND r.collectedAt < :endOfDay
+          AND r.collectionStatus = 'DA_THANH_TOAN'
+        GROUP BY r.assignedConsultant.id, r.assignedConsultant.fullName
+        """)
+    List<Object[]> getConsultantDailyStats(@Param("startOfDay") java.time.Instant startOfDay, @Param("endOfDay") java.time.Instant endOfDay);
 }

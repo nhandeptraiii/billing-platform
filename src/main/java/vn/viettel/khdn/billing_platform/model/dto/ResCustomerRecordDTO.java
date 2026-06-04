@@ -20,10 +20,6 @@ public record ResCustomerRecordDTO(
     BigDecimal amountDue,
 
     // Địa chỉ
-    String province,
-    String ward,
-    String hamlet,
-    String street,
     String fullAddress,
     
     // Dịch vụ và QC

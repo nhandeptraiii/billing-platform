@@ -21,10 +21,6 @@ public record ReqCreateCustomerRecordDTO(
     @NotNull(message = "Số tiền phải thu không được để trống")
     BigDecimal amountDue,
 
-    String province,
-    String ward,
-    String hamlet,
-    String street,
     String fullAddress,
     String serviceType,
     
