@@ -43,4 +43,14 @@ public class DashboardController {
         // giống với các API warning khác hoặc Frontend tự xử lý fields.
         return ResponseEntity.ok(recordRepository.findWarningsByPeriod(periodId, pageable));
     }
+
+    @GetMapping("/daily-stats")
+    @PreAuthorize("hasAnyAuthority('MANAGER', 'ADMIN')")
+    public ResponseEntity<List<vn.viettel.khdn.billing_platform.model.dto.dashboard.ResConsultantDailyStatsDTO>> getDailyStats(
+            @RequestParam(value = "date", required = false) @org.springframework.format.annotation.DateTimeFormat(iso = org.springframework.format.annotation.DateTimeFormat.ISO.DATE) java.time.LocalDate date) {
+        if (date == null) {
+            date = java.time.LocalDate.now(java.time.ZoneId.of("Asia/Ho_Chi_Minh"));
+        }
+        return ResponseEntity.ok(dashboardService.getDailyStats(date));
+    }
 }

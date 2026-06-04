@@ -83,4 +83,28 @@ public class DashboardService {
         }
         return result;
     }
+
+    public List<vn.viettel.khdn.billing_platform.model.dto.dashboard.ResConsultantDailyStatsDTO> getDailyStats(java.time.LocalDate date) {
+        java.time.ZoneId zoneId = java.time.ZoneId.of("Asia/Ho_Chi_Minh");
+        java.time.Instant startOfDay = date.atStartOfDay(zoneId).toInstant();
+        java.time.Instant endOfDay = date.plusDays(1).atStartOfDay(zoneId).toInstant();
+
+        List<Object[]> data = repository.getConsultantDailyStats(startOfDay, endOfDay);
+        List<vn.viettel.khdn.billing_platform.model.dto.dashboard.ResConsultantDailyStatsDTO> result = new ArrayList<>();
+
+        for (Object[] row : data) {
+            Long consultantId = row[0] != null ? ((Number) row[0]).longValue() : null;
+            String consultantName = (String) row[1];
+            java.time.Instant firstBillPrintedAt = (java.time.Instant) row[2];
+            Long collectedCount = row[3] != null ? ((Number) row[3]).longValue() : 0L;
+
+            result.add(new vn.viettel.khdn.billing_platform.model.dto.dashboard.ResConsultantDailyStatsDTO(
+                    consultantId,
+                    consultantName,
+                    firstBillPrintedAt,
+                    collectedCount
+            ));
+        }
+        return result;
+    }
 }
