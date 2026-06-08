@@ -74,6 +74,24 @@ public class DashboardController {
         return ResponseEntity.ok(dashboardService.getConsultantPerformance(periodId));
     }
 
+    @GetMapping("/consultants/export")
+    @PreAuthorize("hasAnyAuthority('MANAGER', 'ADMIN')")
+    public ResponseEntity<byte[]> exportConsultantPerformance(
+            @RequestParam(value = "month", required = false) Integer month,
+            @RequestParam(value = "year", required = false) Integer year) {
+        Long periodId = resolvePeriodId(month, year);
+        if (periodId == null) {
+            return ResponseEntity.badRequest().body(null);
+        }
+        byte[] data = dashboardService.exportConsultantPerformance(periodId);
+        return ResponseEntity.ok()
+                .header(org.springframework.http.HttpHeaders.CONTENT_DISPOSITION,
+                        "attachment; filename=bao_cao_tien_do.xlsx")
+                .header(org.springframework.http.HttpHeaders.CONTENT_TYPE,
+                        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+                .body(data);
+    }
+
     @GetMapping("/warnings")
     @PreAuthorize("hasAnyAuthority('MANAGER', 'ADMIN')")
     public ResponseEntity<Page<ResCustomerRecordDTO>> getWarnings(
