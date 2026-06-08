@@ -6,6 +6,9 @@ import vn.viettel.khdn.billing_platform.model.dto.dashboard.ResConsultantPerform
 import vn.viettel.khdn.billing_platform.model.dto.dashboard.ResDashboardOverviewDTO;
 import vn.viettel.khdn.billing_platform.model.enums.CollectionStatusEnum;
 import vn.viettel.khdn.billing_platform.repository.CustomerBillingRecordRepository;
+import vn.viettel.khdn.billing_platform.model.User;
+import vn.viettel.khdn.billing_platform.model.enums.DebtStatusEnum;
+import vn.viettel.khdn.billing_platform.model.enums.RoleEnum;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
@@ -18,17 +21,23 @@ public class DashboardService {
 
     private final CustomerBillingRecordRepository repository;
 
-    public ResDashboardOverviewDTO getDashboardOverview(Long periodId) {
-        List<Object[]> stats = repository.getProgressByPeriod(periodId);
+    public ResDashboardOverviewDTO getDashboardOverview(Long periodId, User currentUser) {
+        List<Object[]> stats;
+        if (currentUser.getRole() == RoleEnum.MANAGER) {
+            stats = repository.getProgressByPeriod(periodId);
+        } else {
+            stats = repository.getProgressByPeriodAndConsultant(periodId, currentUser.getId());
+        }
         
         long totalRecords = 0L;
         long collectedRecords = 0L;
+        long markedDebtRecords = 0L;
         BigDecimal expectedAmount = BigDecimal.ZERO;
         BigDecimal collectedAmount = BigDecimal.ZERO;
 
         for (Object[] row : stats) {
             CollectionStatusEnum collectionStatus = (CollectionStatusEnum) row[0];
-            // row[1] is debtStatus
+            DebtStatusEnum debtStatus = (DebtStatusEnum) row[1];
             Long count = ((Number) row[2]).longValue();
             BigDecimal amtDue = row[3] != null ? new BigDecimal(row[3].toString()) : BigDecimal.ZERO;
             BigDecimal colAmt = row[4] != null ? new BigDecimal(row[4].toString()) : BigDecimal.ZERO;
@@ -39,6 +48,9 @@ public class DashboardService {
 
             if (CollectionStatusEnum.DA_THANH_TOAN == collectionStatus) {
                 collectedRecords += count;
+            }
+            if (DebtStatusEnum.DA_GACH_NO == debtStatus) {
+                markedDebtRecords += count;
             }
         }
 
@@ -54,6 +66,7 @@ public class DashboardService {
         return new ResDashboardOverviewDTO(
                 totalRecords,
                 collectedRecords,
+                markedDebtRecords,
                 expectedAmount,
                 collectedAmount,
                 progressPercentage

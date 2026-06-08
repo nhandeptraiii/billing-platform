@@ -154,6 +154,15 @@ public interface CustomerBillingRecordRepository extends JpaRepository<CustomerB
         """)
     List<Object[]> getProgressByPeriod(@Param("periodId") Long periodId);
 
+    // Thống kê tiến độ theo kỳ và tư vấn viên
+    @Query("""
+        SELECT r.collectionStatus, r.debtStatus, COUNT(r), SUM(r.amountDue), SUM(r.collectedAmount)
+        FROM CustomerBillingRecord r
+        WHERE r.billingPeriod.id = :periodId AND r.assignedConsultant.id = :consultantId
+        GROUP BY r.collectionStatus, r.debtStatus
+        """)
+    List<Object[]> getProgressByPeriodAndConsultant(@Param("periodId") Long periodId, @Param("consultantId") Long consultantId);
+
     // Thống kê theo tư vấn viên trong kỳ (kèm chỉ tiêu)
     @Query("""
         SELECT r.assignedConsultant.id, r.assignedConsultant.fullName,

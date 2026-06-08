@@ -20,6 +20,7 @@ import vn.viettel.khdn.billing_platform.model.dto.ResCustomerRecordDTO;
 import vn.viettel.khdn.billing_platform.model.enums.CollectionStatusEnum;
 import vn.viettel.khdn.billing_platform.model.enums.DebtStatusEnum;
 import vn.viettel.khdn.billing_platform.repository.UserRepository;
+import vn.viettel.khdn.billing_platform.repository.BillingPeriodRepository;
 import vn.viettel.khdn.billing_platform.service.CustomerRecordService;
 import vn.viettel.khdn.billing_platform.service.ImportService;
 import vn.viettel.khdn.billing_platform.util.SecurityUtil;
@@ -35,13 +36,16 @@ public class CustomerRecordController {
     private final CustomerRecordService recordService;
     private final ImportService importService;
     private final UserRepository userRepository;
+    private final BillingPeriodRepository periodRepository;
 
     public CustomerRecordController(CustomerRecordService recordService,
             ImportService importService,
-            UserRepository userRepository) {
+            UserRepository userRepository,
+            BillingPeriodRepository periodRepository) {
         this.recordService = recordService;
         this.importService = importService;
         this.userRepository = userRepository;
+        this.periodRepository = periodRepository;
     }
 
     // Helper lấy user hiện tại
@@ -50,6 +54,18 @@ public class CustomerRecordController {
                 .orElseThrow(() -> new EntityNotFoundException("Chưa đăng nhập"));
         return userRepository.findByUsername(username)
                 .orElseThrow(() -> new EntityNotFoundException("Không tìm thấy người dùng"));
+    }
+
+    private Long resolvePeriodId(Long periodId, Integer month, Integer year) {
+        if (periodId != null) return periodId;
+        if (month == null || year == null) {
+            java.time.LocalDate now = java.time.LocalDate.now(java.time.ZoneId.of("Asia/Ho_Chi_Minh"));
+            if (month == null) month = now.getMonthValue();
+            if (year == null) year = now.getYear();
+        }
+        return periodRepository.findByMonthAndYear(month, year)
+            .map(vn.viettel.khdn.billing_platform.model.BillingPeriod::getId)
+            .orElse(null);
     }
 
     /**
@@ -61,6 +77,8 @@ public class CustomerRecordController {
     @GetMapping
     public ResponseEntity<Page<ResCustomerRecordDTO>> getRecords(
             @RequestParam(value = "periodId", required = false) Long periodId,
+            @RequestParam(value = "month", required = false) Integer month,
+            @RequestParam(value = "year", required = false) Integer year,
             @RequestParam(value = "collectionStatus", required = false) CollectionStatusEnum collectionStatus,
             @RequestParam(value = "debtStatus", required = false) DebtStatusEnum debtStatus,
             @RequestParam(value = "assignedUserId", required = false) Long assignedUserId,
@@ -70,8 +88,9 @@ public class CustomerRecordController {
             @RequestParam(value = "size", defaultValue = "20") int size) {
 
         User currentUser = getCurrentUser();
+        Long resolvedPeriodId = resolvePeriodId(periodId, month, year);
         Page<CustomerBillingRecord> records = recordService.search(
-                currentUser, periodId, collectionStatus, debtStatus, assignedUserId,
+                currentUser, resolvedPeriodId, collectionStatus, debtStatus, assignedUserId,
                 billPrintedDate, search,
                 PageRequest.of(page, size, Sort.by("createdAt").descending()));
 
@@ -85,6 +104,8 @@ public class CustomerRecordController {
     @GetMapping("/export")
     public ResponseEntity<byte[]> exportRecords(
             @RequestParam(value = "periodId", required = false) Long periodId,
+            @RequestParam(value = "month", required = false) Integer month,
+            @RequestParam(value = "year", required = false) Integer year,
             @RequestParam(value = "collectionStatus", required = false) CollectionStatusEnum collectionStatus,
             @RequestParam(value = "debtStatus", required = false) DebtStatusEnum debtStatus,
             @RequestParam(value = "assignedUserId", required = false) Long assignedUserId,
@@ -92,7 +113,8 @@ public class CustomerRecordController {
             @RequestParam(value = "search", required = false) String search) {
 
         User currentUser = getCurrentUser();
-        byte[] data = recordService.exportExcel(currentUser, periodId, collectionStatus, debtStatus, assignedUserId,
+        Long resolvedPeriodId = resolvePeriodId(periodId, month, year);
+        byte[] data = recordService.exportExcel(currentUser, resolvedPeriodId, collectionStatus, debtStatus, assignedUserId,
                 billPrintedDate, search);
 
         return ResponseEntity.ok()
@@ -167,6 +189,8 @@ public class CustomerRecordController {
     @PatchMapping("/bulk-mark-debt/filter")
     public ResponseEntity<java.util.Map<String, Object>> bulkMarkDebtWithFilter(
             @RequestParam(value = "periodId", required = false) Long periodId,
+            @RequestParam(value = "month", required = false) Integer month,
+            @RequestParam(value = "year", required = false) Integer year,
             @RequestParam(value = "collectionStatus", required = false) CollectionStatusEnum collectionStatus,
             @RequestParam(value = "debtStatus", required = false) DebtStatusEnum debtStatus,
             @RequestParam(value = "assignedUserId", required = false) Long assignedUserId,
@@ -174,7 +198,8 @@ public class CustomerRecordController {
             @RequestParam(value = "search", required = false) String search) {
 
         User currentUser = getCurrentUser();
-        int count = recordService.bulkMarkDebtWithFilter(currentUser, periodId, collectionStatus, debtStatus,
+        Long resolvedPeriodId = resolvePeriodId(periodId, month, year);
+        int count = recordService.bulkMarkDebtWithFilter(currentUser, resolvedPeriodId, collectionStatus, debtStatus,
                 assignedUserId, billPrintedDate, search);
         return ResponseEntity.ok(java.util.Map.of(
                 "message", "Đã gạch nợ thành công " + count + " bản ghi theo bộ lọc",
@@ -188,6 +213,8 @@ public class CustomerRecordController {
     @PatchMapping("/bulk-pay/filter")
     public ResponseEntity<java.util.Map<String, Object>> bulkPayWithFilter(
             @RequestParam(value = "periodId", required = false) Long periodId,
+            @RequestParam(value = "month", required = false) Integer month,
+            @RequestParam(value = "year", required = false) Integer year,
             @RequestParam(value = "collectionStatus", required = false) CollectionStatusEnum collectionStatus,
             @RequestParam(value = "debtStatus", required = false) DebtStatusEnum debtStatus,
             @RequestParam(value = "assignedUserId", required = false) Long assignedUserId,
@@ -195,7 +222,8 @@ public class CustomerRecordController {
             @RequestParam(value = "search", required = false) String search) {
 
         User currentUser = getCurrentUser();
-        int count = recordService.bulkPayWithFilter(currentUser, periodId, collectionStatus, debtStatus, assignedUserId,
+        Long resolvedPeriodId = resolvePeriodId(periodId, month, year);
+        int count = recordService.bulkPayWithFilter(currentUser, resolvedPeriodId, collectionStatus, debtStatus, assignedUserId,
                 billPrintedDate, search);
         return ResponseEntity.ok(java.util.Map.of(
                 "message", "Đã thanh toán thành công " + count + " bản ghi theo bộ lọc",

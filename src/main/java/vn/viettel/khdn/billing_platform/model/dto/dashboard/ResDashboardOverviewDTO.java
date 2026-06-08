@@ -11,6 +11,7 @@ import java.math.BigDecimal;
 public class ResDashboardOverviewDTO {
     private Long totalRecordsImported;
     private Long totalCollectedRecords;
+    private Long totalMarkedDebtRecords;
     private BigDecimal totalExpectedAmount;
     private BigDecimal totalCollectedAmount;
     private Double progressPercentage;

@@ -13,6 +13,10 @@ import vn.viettel.khdn.billing_platform.repository.BillingPeriodRepository;
 import vn.viettel.khdn.billing_platform.repository.CustomerBillingRecordRepository;
 import vn.viettel.khdn.billing_platform.service.CustomerRecordService;
 import vn.viettel.khdn.billing_platform.service.DashboardService;
+import vn.viettel.khdn.billing_platform.repository.UserRepository;
+import vn.viettel.khdn.billing_platform.util.SecurityUtil;
+import vn.viettel.khdn.billing_platform.model.User;
+import jakarta.persistence.EntityNotFoundException;
 import vn.viettel.khdn.billing_platform.model.dto.ResCustomerRecordDTO;
 
 import java.util.List;
@@ -26,6 +30,14 @@ public class DashboardController {
     private final CustomerBillingRecordRepository recordRepository;
     private final CustomerRecordService recordService;
     private final BillingPeriodRepository periodRepository;
+    private final UserRepository userRepository;
+
+    private User getCurrentUser() {
+        String username = SecurityUtil.getCurrentUserLogin()
+                .orElseThrow(() -> new EntityNotFoundException("Chưa đăng nhập"));
+        return userRepository.findByUsername(username)
+                .orElseThrow(() -> new EntityNotFoundException("Không tìm thấy người dùng"));
+    }
 
     private Long resolvePeriodId(Integer month, Integer year) {
         if (month == null || year == null) {
@@ -39,15 +51,15 @@ public class DashboardController {
     }
 
     @GetMapping("/overview")
-    @PreAuthorize("hasAnyAuthority('MANAGER', 'ADMIN')")
+    @PreAuthorize("hasAnyAuthority('MANAGER', 'ADMIN', 'CONSULTANT')")
     public ResponseEntity<ResDashboardOverviewDTO> getOverview(
             @RequestParam(value = "month", required = false) Integer month,
             @RequestParam(value = "year", required = false) Integer year) {
         Long periodId = resolvePeriodId(month, year);
         if (periodId == null) {
-            return ResponseEntity.ok(new ResDashboardOverviewDTO(0L, 0L, java.math.BigDecimal.ZERO, java.math.BigDecimal.ZERO, 0.0));
+            return ResponseEntity.ok(new ResDashboardOverviewDTO(0L, 0L, 0L, java.math.BigDecimal.ZERO, java.math.BigDecimal.ZERO, 0.0));
         }
-        return ResponseEntity.ok(dashboardService.getDashboardOverview(periodId));
+        return ResponseEntity.ok(dashboardService.getDashboardOverview(periodId, getCurrentUser()));
     }
 
     @GetMapping("/consultants")
