@@ -61,7 +61,8 @@ public interface CustomerBillingRecordRepository extends JpaRepository<CustomerB
                LOWER(r.customerName) LIKE LOWER(CONCAT('%', :search, '%')) OR
                r.customerCode LIKE CONCAT('%', :search, '%') OR
                r.subscriberNumber LIKE CONCAT('%', :search, '%') OR
-               r.phoneNumber LIKE CONCAT('%', :search, '%'))
+               r.phoneNumber LIKE CONCAT('%', :search, '%') OR
+               LOWER(r.fullAddress) LIKE LOWER(CONCAT('%', :search, '%')))
         """)
     Page<CustomerBillingRecord> searchAll(
             @Param("periodId") Long periodId,
@@ -86,7 +87,8 @@ public interface CustomerBillingRecordRepository extends JpaRepository<CustomerB
                LOWER(r.customerName) LIKE LOWER(CONCAT('%', :search, '%')) OR
                r.customerCode LIKE CONCAT('%', :search, '%') OR
                r.subscriberNumber LIKE CONCAT('%', :search, '%') OR
-               r.phoneNumber LIKE CONCAT('%', :search, '%'))
+               r.phoneNumber LIKE CONCAT('%', :search, '%') OR
+               LOWER(r.fullAddress) LIKE LOWER(CONCAT('%', :search, '%')))
         """)
     List<Long> findAllIdsAll(
             @Param("periodId") Long periodId,
@@ -110,7 +112,8 @@ public interface CustomerBillingRecordRepository extends JpaRepository<CustomerB
                LOWER(r.customerName) LIKE LOWER(CONCAT('%', :search, '%')) OR
                r.customerCode LIKE CONCAT('%', :search, '%') OR
                r.subscriberNumber LIKE CONCAT('%', :search, '%') OR
-               r.phoneNumber LIKE CONCAT('%', :search, '%'))
+               r.phoneNumber LIKE CONCAT('%', :search, '%') OR
+               LOWER(r.fullAddress) LIKE LOWER(CONCAT('%', :search, '%')))
         """)
     Page<CustomerBillingRecord> searchByConsultant(
             @Param("consultantId") Long consultantId,
@@ -134,7 +137,8 @@ public interface CustomerBillingRecordRepository extends JpaRepository<CustomerB
                LOWER(r.customerName) LIKE LOWER(CONCAT('%', :search, '%')) OR
                r.customerCode LIKE CONCAT('%', :search, '%') OR
                r.subscriberNumber LIKE CONCAT('%', :search, '%') OR
-               r.phoneNumber LIKE CONCAT('%', :search, '%'))
+               r.phoneNumber LIKE CONCAT('%', :search, '%') OR
+               LOWER(r.fullAddress) LIKE LOWER(CONCAT('%', :search, '%')))
         """)
     List<Long> findAllIdsByConsultant(
             @Param("consultantId") Long consultantId,
