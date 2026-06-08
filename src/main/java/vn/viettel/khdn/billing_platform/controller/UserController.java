@@ -16,6 +16,7 @@ import vn.viettel.khdn.billing_platform.model.dto.ReqChangePasswordDTO;
 import vn.viettel.khdn.billing_platform.model.dto.ReqResetPasswordDTO;
 import vn.viettel.khdn.billing_platform.model.dto.ReqUserCreateDTO;
 import vn.viettel.khdn.billing_platform.model.dto.ReqUserUpdateDTO;
+import vn.viettel.khdn.billing_platform.model.dto.ReqUserUpdateMeDTO;
 import vn.viettel.khdn.billing_platform.model.dto.ResUserDTO;
 import vn.viettel.khdn.billing_platform.model.enums.RoleEnum;
 import vn.viettel.khdn.billing_platform.service.UserService;
@@ -37,6 +38,14 @@ public class UserController {
         String username = SecurityUtil.getCurrentUserLogin()
             .orElseThrow(() -> new jakarta.persistence.EntityNotFoundException("Chưa đăng nhập"));
         return ResponseEntity.ok(userService.getByUsername(username));
+    }
+
+    @PreAuthorize("isAuthenticated()")
+    @PutMapping("/me")
+    public ResponseEntity<ResUserDTO> updateCurrentUser(@Valid @RequestBody ReqUserUpdateMeDTO req) {
+        String username = SecurityUtil.getCurrentUserLogin()
+            .orElseThrow(() -> new jakarta.persistence.EntityNotFoundException("Chưa đăng nhập"));
+        return ResponseEntity.ok(userService.updateMe(username, req));
     }
 
     @PreAuthorize("hasAuthority('MANAGER')")

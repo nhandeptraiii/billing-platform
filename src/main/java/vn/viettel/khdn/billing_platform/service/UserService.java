@@ -14,6 +14,7 @@ import jakarta.persistence.EntityNotFoundException;
 import vn.viettel.khdn.billing_platform.model.User;
 import vn.viettel.khdn.billing_platform.model.dto.ReqUserCreateDTO;
 import vn.viettel.khdn.billing_platform.model.dto.ReqUserUpdateDTO;
+import vn.viettel.khdn.billing_platform.model.dto.ReqUserUpdateMeDTO;
 import vn.viettel.khdn.billing_platform.model.dto.ResUserDTO;
 import vn.viettel.khdn.billing_platform.model.enums.RoleEnum;
 import vn.viettel.khdn.billing_platform.repository.UserRepository;
@@ -80,6 +81,15 @@ public class UserService {
         user.setFullName(req.fullName());
         user.setPhone(req.phone());
         user.setRole(req.role());
+        User saved = userRepository.save(user);
+        return convertToResUserDTO(saved);
+    }
+
+    public ResUserDTO updateMe(String username, ReqUserUpdateMeDTO req) {
+        User user = userRepository.findByUsername(username)
+            .orElseThrow(() -> new EntityNotFoundException("Không tìm thấy người dùng Username: " + username));
+        user.setFullName(req.fullName());
+        user.setPhone(req.phone());
         User saved = userRepository.save(user);
         return convertToResUserDTO(saved);
     }
