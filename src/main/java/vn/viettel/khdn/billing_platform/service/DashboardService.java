@@ -55,12 +55,21 @@ public class DashboardService {
         }
 
         Double progressPercentage = 0.0;
+        Double amountProgressPercentage = 0.0;
+        Double recordsProgressPercentage = 0.0;
+        
         if (expectedAmount.compareTo(BigDecimal.ZERO) > 0) {
-            progressPercentage = collectedAmount.divide(expectedAmount, 4, RoundingMode.HALF_UP)
+            amountProgressPercentage = collectedAmount.divide(expectedAmount, 4, RoundingMode.HALF_UP)
                                                 .multiply(BigDecimal.valueOf(100))
                                                 .doubleValue();
-        } else if (totalRecords > 0) {
-            progressPercentage = (double) collectedRecords / totalRecords * 100;
+            progressPercentage = amountProgressPercentage;
+        } 
+        
+        if (totalRecords > 0) {
+            recordsProgressPercentage = (double) collectedRecords / totalRecords * 100;
+            if (expectedAmount.compareTo(BigDecimal.ZERO) == 0) {
+                progressPercentage = recordsProgressPercentage;
+            }
         }
 
         return new ResDashboardOverviewDTO(
@@ -69,7 +78,9 @@ public class DashboardService {
                 markedDebtRecords,
                 expectedAmount,
                 collectedAmount,
-                progressPercentage
+                progressPercentage,
+                amountProgressPercentage,
+                recordsProgressPercentage
         );
     }
 
