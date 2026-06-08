@@ -248,8 +248,14 @@ public class CustomerRecordController {
     @PreAuthorize("hasAuthority('MANAGER')")
     public ResponseEntity<ImportResultDTO> importReconciliation(
             @RequestParam("file") MultipartFile file,
-            @RequestParam("periodId") Long periodId) {
-        return ResponseEntity.ok(importService.importReconciliation(file, periodId));
+            @RequestParam(value = "periodId", required = false) Long periodId,
+            @RequestParam(value = "month", required = false) Integer month,
+            @RequestParam(value = "year", required = false) Integer year) {
+        Long resolvedPeriodId = resolvePeriodId(periodId, month, year);
+        if (resolvedPeriodId == null) {
+            return ResponseEntity.badRequest().build();
+        }
+        return ResponseEntity.ok(importService.importReconciliation(file, resolvedPeriodId));
     }
 
     @PreAuthorize("hasAuthority('MANAGER')")
