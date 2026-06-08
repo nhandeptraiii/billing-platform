@@ -142,6 +142,9 @@ public class DashboardService {
 
         try (Workbook workbook = new SXSSFWorkbook(100); ByteArrayOutputStream out = new ByteArrayOutputStream()) {
             Sheet sheet = workbook.createSheet("Báo cáo tiến độ");
+            if (sheet instanceof org.apache.poi.xssf.streaming.SXSSFSheet) {
+                ((org.apache.poi.xssf.streaming.SXSSFSheet) sheet).trackAllColumnsForAutoSizing();
+            }
 
             // Header Style
             CellStyle headerStyle = workbook.createCellStyle();
