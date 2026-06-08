@@ -57,7 +57,7 @@ public class DashboardController {
             @RequestParam(value = "year", required = false) Integer year) {
         Long periodId = resolvePeriodId(month, year);
         if (periodId == null) {
-            return ResponseEntity.ok(new ResDashboardOverviewDTO(0L, 0L, 0L, java.math.BigDecimal.ZERO, java.math.BigDecimal.ZERO, 0.0, 0.0, 0.0));
+            return ResponseEntity.ok(new ResDashboardOverviewDTO(0L, 0L, 0L, java.math.BigDecimal.ZERO, java.math.BigDecimal.ZERO, 0.0, 0.0));
         }
         return ResponseEntity.ok(dashboardService.getDashboardOverview(periodId, getCurrentUser()));
     }
