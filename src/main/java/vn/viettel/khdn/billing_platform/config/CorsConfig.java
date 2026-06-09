@@ -16,8 +16,10 @@ public class CorsConfig {
         CorsConfiguration configuration = new CorsConfiguration();
         configuration.setAllowedOrigins(Arrays.asList(
                 "http://localhost:3000",
-                "http://localhost:5173"
-                // Thêm domain production khi deploy
+                "http://localhost:5173",
+                "http://thucuoc.crmkhdncto.id.vn",
+                "https://thucuoc.crmkhdncto.id.vn"
+        // Thêm domain production khi deploy
         ));
         configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
         configuration.setAllowedHeaders(Arrays.asList("Authorization", "Cache-Control", "Content-Type"));

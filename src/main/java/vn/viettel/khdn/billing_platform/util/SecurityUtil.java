@@ -25,7 +25,7 @@ import org.springframework.stereotype.Service;
 public class SecurityUtil {
 
     public static final String AUTHORITIES_KEY = "AUTHORITIES";
-    public static final MacAlgorithm JWT_ALGORITHM = MacAlgorithm.HS512;
+    public static final MacAlgorithm JWT_ALGORITHM = MacAlgorithm.HS256;
 
     private final JwtEncoder jwtEncoder;
 
@@ -76,10 +76,14 @@ public class SecurityUtil {
     }
 
     private static String extractPrincipal(Authentication authentication) {
-        if (authentication == null) return null;
-        if (authentication.getPrincipal() instanceof UserDetails u) return u.getUsername();
-        if (authentication.getPrincipal() instanceof Jwt jwt) return jwt.getSubject();
-        if (authentication.getPrincipal() instanceof String s) return s;
+        if (authentication == null)
+            return null;
+        if (authentication.getPrincipal() instanceof UserDetails u)
+            return u.getUsername();
+        if (authentication.getPrincipal() instanceof Jwt jwt)
+            return jwt.getSubject();
+        if (authentication.getPrincipal() instanceof String s)
+            return s;
         return null;
     }
 }
