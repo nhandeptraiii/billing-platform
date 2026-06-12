@@ -10,6 +10,7 @@ import jakarta.validation.constraints.Pattern;
 import lombok.Getter;
 import lombok.Setter;
 import vn.viettel.khdn.billing_platform.model.enums.RoleEnum;
+import vn.viettel.khdn.billing_platform.model.Region;
 
 @Getter
 @Setter
@@ -50,6 +51,10 @@ public class User {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "manager_id")
     private User manager;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "region_id")
+    private Region region;
 
     private Instant createdAt;
     private Instant updatedAt;

@@ -9,6 +9,7 @@ import lombok.Setter;
 import vn.viettel.khdn.billing_platform.model.enums.CollectionStatusEnum;
 import vn.viettel.khdn.billing_platform.model.enums.DebtStatusEnum;
 import vn.viettel.khdn.billing_platform.model.enums.SyncWarningEnum;
+import vn.viettel.khdn.billing_platform.model.Region;
 
 /**
  * Entity trung tâm: Bản ghi thu cước của một khách hàng trong một kỳ.
@@ -35,6 +36,10 @@ public class CustomerBillingRecord {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "billing_period_id", nullable = false)
     private BillingPeriod billingPeriod;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "region_id")
+    private Region region;
 
     // ---- Thông tin khách hàng (snapshot từ file import) ----
     @Column(length = 50)

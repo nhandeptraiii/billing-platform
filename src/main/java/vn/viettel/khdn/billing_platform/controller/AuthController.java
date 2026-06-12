@@ -45,15 +45,17 @@ public class AuthController {
                 .orElseThrow(() -> new jakarta.persistence.EntityNotFoundException("Chưa đăng nhập"));
         User user = authService.getCurrentUser(username);
         ResUserDTO res = new ResUserDTO(
-                user.getId(),
-                user.getUsername(),
-                user.getFullName(),
-
-                user.getPhone(),
-                user.getStatus(),
-                user.getRole(),
-                user.getCreatedAt(),
-                user.getUpdatedAt());
+            user.getId(),
+            user.getUsername(),
+            user.getFullName(),
+            user.getPhone(),
+            user.getStatus(),
+            user.getRole(),
+            user.getRegion() != null ? user.getRegion().getId() : null,
+            user.getRegion() != null ? user.getRegion().getName() : null,
+            user.getCreatedAt(),
+            user.getUpdatedAt()
+        );
         return ResponseEntity.ok(res);
     }
 }

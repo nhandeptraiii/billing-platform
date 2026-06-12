@@ -48,7 +48,7 @@ public class UserController {
         return ResponseEntity.ok(userService.updateMe(username, req));
     }
 
-    @PreAuthorize("hasAuthority('MANAGER')")
+    @PreAuthorize("hasAnyAuthority('MANAGER', 'ADMIN')")
     @GetMapping
     public ResponseEntity<Page<ResUserDTO>> getUsers(
             @RequestParam(value = "keyword", required = false) String keyword,
@@ -69,33 +69,33 @@ public class UserController {
         return ResponseEntity.ok(userService.searchUsers(roleEnum, keyword, pageable));
     }
 
-    @PreAuthorize("hasAuthority('MANAGER')")
+    @PreAuthorize("hasAnyAuthority('MANAGER', 'ADMIN')")
     @GetMapping("/{id}")
     public ResponseEntity<ResUserDTO> getById(@PathVariable("id") Long id) {
         return ResponseEntity.ok(userService.getById(id));
     }
 
-    @PreAuthorize("hasAuthority('MANAGER')")
+    @PreAuthorize("hasAnyAuthority('MANAGER', 'ADMIN')")
     @PostMapping
     public ResponseEntity<ResUserDTO> create(@Valid @RequestBody ReqUserCreateDTO req) {
         return ResponseEntity.status(HttpStatus.CREATED).body(userService.create(req));
     }
 
-    @PreAuthorize("hasAuthority('MANAGER')")
+    @PreAuthorize("hasAnyAuthority('MANAGER', 'ADMIN')")
     @PutMapping("/{id}")
     public ResponseEntity<ResUserDTO> update(@PathVariable("id") Long id,
                                        @Valid @RequestBody ReqUserUpdateDTO req) {
         return ResponseEntity.ok(userService.update(id, req));
     }
 
-    @PreAuthorize("hasAuthority('MANAGER')")
+    @PreAuthorize("hasAnyAuthority('MANAGER', 'ADMIN')")
     @PatchMapping("/{id}/status")
     public ResponseEntity<ResUserDTO> setStatus(@PathVariable("id") Long id,
                                           @RequestParam("status") String status) {
         return ResponseEntity.ok(userService.setStatus(id, status));
     }
 
-    @PreAuthorize("hasAuthority('MANAGER')")
+    @PreAuthorize("hasAnyAuthority('MANAGER', 'ADMIN')")
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> delete(@PathVariable("id") Long id) {
         userService.delete(id);
@@ -112,7 +112,7 @@ public class UserController {
         return ResponseEntity.ok(Map.of("message", "Đổi mật khẩu thành công!"));
     }
 
-    @PreAuthorize("hasAuthority('MANAGER')")
+    @PreAuthorize("hasAnyAuthority('MANAGER', 'ADMIN')")
     @PutMapping("/{id}/reset-password")
     public ResponseEntity<Map<String, String>> resetPassword(@PathVariable("id") Long id,
             @Valid @RequestBody ReqResetPasswordDTO req) {

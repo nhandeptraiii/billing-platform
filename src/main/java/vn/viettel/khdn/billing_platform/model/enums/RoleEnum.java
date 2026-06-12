@@ -1,6 +1,7 @@
 package vn.viettel.khdn.billing_platform.model.enums;
 
 public enum RoleEnum {
-    MANAGER,    // Người quản lý
-    CONSULTANT  // Tư vấn viên
+    ADMIN,      // Quản trị viên hệ thống (xem toàn bộ)
+    MANAGER,    // Người quản lý (theo khu vực)
+    CONSULTANT  // Tư vấn viên (theo khu vực)
 }

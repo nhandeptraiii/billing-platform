@@ -65,7 +65,7 @@ public class CustomerRecordController {
         }
         return periodRepository.findByMonthAndYear(month, year)
             .map(vn.viettel.khdn.billing_platform.model.BillingPeriod::getId)
-            .orElse(null);
+            .orElse(-1L);
     }
 
     /**
@@ -130,7 +130,7 @@ public class CustomerRecordController {
      * Thêm mới khách hàng thủ công
      */
     @PostMapping
-    @PreAuthorize("hasAuthority('MANAGER')")
+    @PreAuthorize("hasAnyAuthority('MANAGER', 'ADMIN')")
     public ResponseEntity<ResCustomerRecordDTO> createRecord(
             @Valid @RequestBody ReqCreateCustomerRecordDTO req) {
         User currentUser = getCurrentUser();
@@ -245,20 +245,21 @@ public class CustomerRecordController {
      * Manager import file đối chiếu gạch nợ
      */
     @PostMapping("/import-reconciliation")
-    @PreAuthorize("hasAuthority('MANAGER')")
+    @PreAuthorize("hasAnyAuthority('MANAGER', 'ADMIN')")
     public ResponseEntity<ImportResultDTO> importReconciliation(
             @RequestParam("file") MultipartFile file,
             @RequestParam(value = "periodId", required = false) Long periodId,
             @RequestParam(value = "month", required = false) Integer month,
             @RequestParam(value = "year", required = false) Integer year) {
         Long resolvedPeriodId = resolvePeriodId(periodId, month, year);
-        if (resolvedPeriodId == null) {
+        if (resolvedPeriodId == -1L) {
             return ResponseEntity.badRequest().build();
         }
-        return ResponseEntity.ok(importService.importReconciliation(file, resolvedPeriodId));
+        User currentUser = getCurrentUser();
+        return ResponseEntity.ok(importService.importReconciliation(file, resolvedPeriodId, currentUser));
     }
 
-    @PreAuthorize("hasAuthority('MANAGER')")
+    @PreAuthorize("hasAnyAuthority('MANAGER', 'ADMIN')")
     @GetMapping("/import-reconciliation/template")
     public ResponseEntity<byte[]> downloadReconciliationTemplate() {
         byte[] data = importService.generateReconciliationTemplate();
@@ -283,7 +284,8 @@ public class CustomerRecordController {
         int safeSize = Math.min(Math.max(size, 1), 50);
         org.springframework.data.domain.Pageable pageable = org.springframework.data.domain.PageRequest.of(
                 Math.max(page, 0), safeSize, Sort.by(Sort.Order.desc("updatedAt")));
-        Page<CustomerBillingRecord> warnings = recordService.getWarnings(periodId, pageable);
+        User currentUser = getCurrentUser();
+        Page<CustomerBillingRecord> warnings = recordService.getWarnings(periodId, currentUser, pageable);
         return ResponseEntity.ok(warnings.map(recordService::toDTO));
     }
 }

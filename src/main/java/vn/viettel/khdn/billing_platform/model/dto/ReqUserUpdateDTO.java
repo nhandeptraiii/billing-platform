@@ -13,5 +13,8 @@ public record ReqUserUpdateDTO(
     String phone,
 
     @NotNull(message = "Role không được để trống")
-    RoleEnum role
+    RoleEnum role,
+
+    @NotNull(message = "Khu vực không được để trống")
+    Long regionId
 ) {}

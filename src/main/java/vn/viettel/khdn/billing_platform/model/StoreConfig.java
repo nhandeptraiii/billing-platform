@@ -5,6 +5,7 @@ import java.time.Instant;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
+import vn.viettel.khdn.billing_platform.model.Region;
 
 /**
  * Cấu hình thông tin cửa hàng dùng để in bill.
@@ -28,6 +29,10 @@ public class StoreConfig {
 
     @Column(length = 20)
     private String hotline;     // Số điện thoại hotline
+
+    @OneToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "region_id", unique = true)
+    private Region region;
 
 
     @ManyToOne(fetch = FetchType.LAZY)

@@ -10,6 +10,8 @@ public record ResUserDTO(
     String phone,
     String status,
     RoleEnum role,
+    Long regionId,
+    String regionName,
     Instant createdAt,
     Instant updatedAt
 ) {}

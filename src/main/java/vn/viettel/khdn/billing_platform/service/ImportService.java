@@ -249,6 +249,7 @@ public class ImportService {
                     record.setServiceType(serviceType.isBlank() ? null : serviceType);
                     record.setAdsContent(adsContent.isBlank() ? null : adsContent);
                     record.setAssignedConsultant(consultant);
+                    record.setRegion(createdBy.getRegion());
                     record.setCollectionStatus(CollectionStatusEnum.CHUA_THU);
                     record.setDebtStatus(DebtStatusEnum.CHUA_GACH_NO);
                     record.setSyncWarning(SyncWarningEnum.NONE);
@@ -289,7 +290,7 @@ public class ImportService {
     // =========================================================================
     // LUỒNG 2: IMPORT ĐỐI CHIẾU GẠCH NỢ — Báo cáo xuất từ hệ thống Viettel
     // =========================================================================
-    public ImportResultDTO importReconciliation(MultipartFile file, Long periodId) {
+    public ImportResultDTO importReconciliation(MultipartFile file, Long periodId, User currentUser) {
         List<ImportResultDTO.ImportErrorRow> errors = new ArrayList<>();
         int autoUpdatedCount = 0;
         int validCount       = 0;
@@ -330,6 +331,12 @@ public class ImportService {
                     CustomerBillingRecord record = recordRepository
                         .findBySubscriberNumberAndBillingPeriodId(subscriberNum, periodId)
                         .orElse(null);
+
+                    if (record != null && currentUser.getRole() == vn.viettel.khdn.billing_platform.model.enums.RoleEnum.MANAGER) {
+                        if (record.getRegion() == null || currentUser.getRegion() == null || !record.getRegion().getId().equals(currentUser.getRegion().getId())) {
+                            record = null; // Prevent updating record from another region
+                        }
+                    }
 
                     if (record == null) {
                         errors.add(new ImportResultDTO.ImportErrorRow(currentRowNum,

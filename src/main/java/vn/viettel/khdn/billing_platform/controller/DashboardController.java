@@ -71,7 +71,7 @@ public class DashboardController {
         if (periodId == null) {
             return ResponseEntity.ok(java.util.Collections.emptyList());
         }
-        return ResponseEntity.ok(dashboardService.getConsultantPerformance(periodId));
+        return ResponseEntity.ok(dashboardService.getConsultantPerformance(periodId, getCurrentUser()));
     }
 
     @GetMapping("/consultants/export")
@@ -83,7 +83,7 @@ public class DashboardController {
         if (periodId == null) {
             return ResponseEntity.badRequest().body(null);
         }
-        byte[] data = dashboardService.exportConsultantPerformance(periodId);
+        byte[] data = dashboardService.exportConsultantPerformance(periodId, getCurrentUser());
         return ResponseEntity.ok()
                 .header(org.springframework.http.HttpHeaders.CONTENT_DISPOSITION,
                         "attachment; filename=bao_cao_tien_do.xlsx")
@@ -102,7 +102,9 @@ public class DashboardController {
         if (periodId == null) {
             return ResponseEntity.ok(Page.empty(pageable));
         }
-        Page<CustomerBillingRecord> page = recordRepository.findWarningsByPeriod(periodId, pageable);
+        User currentUser = getCurrentUser();
+        Long regionId = currentUser.getRole() == vn.viettel.khdn.billing_platform.model.enums.RoleEnum.ADMIN ? null : (currentUser.getRegion() != null ? currentUser.getRegion().getId() : null);
+        Page<CustomerBillingRecord> page = recordRepository.findWarningsByPeriod(periodId, regionId, pageable);
         return ResponseEntity.ok(page.map(recordService::toDTO));
     }
 
@@ -113,6 +115,6 @@ public class DashboardController {
         if (date == null) {
             date = java.time.LocalDate.now(java.time.ZoneId.of("Asia/Ho_Chi_Minh"));
         }
-        return ResponseEntity.ok(dashboardService.getDailyStats(date));
+        return ResponseEntity.ok(dashboardService.getDailyStats(date, getCurrentUser()));
     }
 }

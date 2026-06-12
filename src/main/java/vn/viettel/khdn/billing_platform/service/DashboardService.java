@@ -34,8 +34,9 @@ public class DashboardService {
 
     public ResDashboardOverviewDTO getDashboardOverview(Long periodId, User currentUser) {
         List<Object[]> stats;
-        if (currentUser.getRole() == RoleEnum.MANAGER) {
-            stats = repository.getProgressByPeriod(periodId);
+        if (currentUser.getRole() == RoleEnum.MANAGER || currentUser.getRole() == RoleEnum.ADMIN) {
+            Long regionId = currentUser.getRole() == RoleEnum.ADMIN ? null : (currentUser.getRegion() != null ? currentUser.getRegion().getId() : null);
+            stats = repository.getProgressByPeriod(periodId, regionId);
         } else {
             stats = repository.getProgressByPeriodAndConsultant(periodId, currentUser.getId());
         }
@@ -89,8 +90,9 @@ public class DashboardService {
         );
     }
 
-    public List<ResConsultantPerformanceDTO> getConsultantPerformance(Long periodId) {
-        List<Object[]> data = repository.getConsultantPerformanceWithTarget(periodId);
+    public List<ResConsultantPerformanceDTO> getConsultantPerformance(Long periodId, User currentUser) {
+        Long regionId = currentUser.getRole() == RoleEnum.ADMIN ? null : (currentUser.getRegion() != null ? currentUser.getRegion().getId() : null);
+        List<Object[]> data = repository.getConsultantPerformanceWithTarget(periodId, regionId);
         List<ResConsultantPerformanceDTO> result = new ArrayList<>();
         
         for (Object[] row : data) {
@@ -113,12 +115,13 @@ public class DashboardService {
         return result;
     }
 
-    public List<vn.viettel.khdn.billing_platform.model.dto.dashboard.ResConsultantDailyStatsDTO> getDailyStats(java.time.LocalDate date) {
+    public List<vn.viettel.khdn.billing_platform.model.dto.dashboard.ResConsultantDailyStatsDTO> getDailyStats(java.time.LocalDate date, User currentUser) {
         java.time.ZoneId zoneId = java.time.ZoneId.of("Asia/Ho_Chi_Minh");
         java.time.Instant startOfDay = date.atStartOfDay(zoneId).toInstant();
         java.time.Instant endOfDay = date.plusDays(1).atStartOfDay(zoneId).toInstant();
 
-        List<Object[]> data = repository.getConsultantDailyStats(startOfDay, endOfDay);
+        Long regionId = currentUser.getRole() == RoleEnum.ADMIN ? null : (currentUser.getRegion() != null ? currentUser.getRegion().getId() : null);
+        List<Object[]> data = repository.getConsultantDailyStats(startOfDay, endOfDay, regionId);
         List<vn.viettel.khdn.billing_platform.model.dto.dashboard.ResConsultantDailyStatsDTO> result = new ArrayList<>();
 
         for (Object[] row : data) {
@@ -137,8 +140,8 @@ public class DashboardService {
         return result;
     }
 
-    public byte[] exportConsultantPerformance(Long periodId) {
-        List<ResConsultantPerformanceDTO> records = getConsultantPerformance(periodId);
+    public byte[] exportConsultantPerformance(Long periodId, User currentUser) {
+        List<ResConsultantPerformanceDTO> records = getConsultantPerformance(periodId, currentUser);
 
         try (Workbook workbook = new SXSSFWorkbook(100); ByteArrayOutputStream out = new ByteArrayOutputStream()) {
             Sheet sheet = workbook.createSheet("Báo cáo tiến độ");

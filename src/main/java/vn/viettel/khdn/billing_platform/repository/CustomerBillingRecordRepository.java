@@ -36,6 +36,7 @@ public interface CustomerBillingRecordRepository extends JpaRepository<CustomerB
     @Query("""
         SELECT r FROM CustomerBillingRecord r
         WHERE r.billingPeriod.id = :periodId
+          AND (:regionId IS NULL OR r.region.id = :regionId)
           AND (
             (r.collectionStatus = 'DA_THANH_TOAN' AND r.debtStatus = 'CHUA_GACH_NO')
             OR r.syncWarning = 'INCONSISTENT'
@@ -44,6 +45,7 @@ public interface CustomerBillingRecordRepository extends JpaRepository<CustomerB
         """)
     Page<CustomerBillingRecord> findWarningsByPeriod(
             @Param("periodId") Long periodId,
+            @Param("regionId") Long regionId,
             Pageable pageable);
 
 
@@ -52,6 +54,7 @@ public interface CustomerBillingRecordRepository extends JpaRepository<CustomerB
         SELECT r FROM CustomerBillingRecord r
         LEFT JOIN r.assignedConsultant c
         WHERE (:periodId IS NULL OR r.billingPeriod.id = :periodId)
+          AND (:regionId IS NULL OR r.region.id = :regionId)
           AND (:collectionStatus IS NULL OR r.collectionStatus = :collectionStatus)
           AND (:debtStatus IS NULL OR r.debtStatus = :debtStatus)
           AND (:assignedUserId IS NULL OR c.id = :assignedUserId)
@@ -66,6 +69,7 @@ public interface CustomerBillingRecordRepository extends JpaRepository<CustomerB
         """)
     Page<CustomerBillingRecord> searchAll(
             @Param("periodId") Long periodId,
+            @Param("regionId") Long regionId,
             @Param("collectionStatus") CollectionStatusEnum collectionStatus,
             @Param("debtStatus") DebtStatusEnum debtStatus,
             @Param("assignedUserId") Long assignedUserId,
@@ -78,6 +82,7 @@ public interface CustomerBillingRecordRepository extends JpaRepository<CustomerB
         SELECT r.id FROM CustomerBillingRecord r
         LEFT JOIN r.assignedConsultant c
         WHERE (:periodId IS NULL OR r.billingPeriod.id = :periodId)
+          AND (:regionId IS NULL OR r.region.id = :regionId)
           AND (:collectionStatus IS NULL OR r.collectionStatus = :collectionStatus)
           AND (:debtStatus IS NULL OR r.debtStatus = :debtStatus)
           AND (:assignedUserId IS NULL OR c.id = :assignedUserId)
@@ -92,6 +97,7 @@ public interface CustomerBillingRecordRepository extends JpaRepository<CustomerB
         """)
     List<Long> findAllIdsAll(
             @Param("periodId") Long periodId,
+            @Param("regionId") Long regionId,
             @Param("collectionStatus") CollectionStatusEnum collectionStatus,
             @Param("debtStatus") DebtStatusEnum debtStatus,
             @Param("assignedUserId") Long assignedUserId,
@@ -154,9 +160,10 @@ public interface CustomerBillingRecordRepository extends JpaRepository<CustomerB
         SELECT r.collectionStatus, r.debtStatus, COUNT(r), SUM(r.amountDue), SUM(r.collectedAmount)
         FROM CustomerBillingRecord r
         WHERE r.billingPeriod.id = :periodId
+          AND (:regionId IS NULL OR r.region.id = :regionId)
         GROUP BY r.collectionStatus, r.debtStatus
         """)
-    List<Object[]> getProgressByPeriod(@Param("periodId") Long periodId);
+    List<Object[]> getProgressByPeriod(@Param("periodId") Long periodId, @Param("regionId") Long regionId);
 
     // Thống kê tiến độ theo kỳ và tư vấn viên
     @Query("""
@@ -175,9 +182,10 @@ public interface CustomerBillingRecordRepository extends JpaRepository<CustomerB
                SUM(CASE WHEN r.collectionStatus = 'DA_THANH_TOAN' THEN r.collectedAmount ELSE 0 END)
         FROM CustomerBillingRecord r
         WHERE r.billingPeriod.id = :periodId
+          AND (:regionId IS NULL OR r.region.id = :regionId)
         GROUP BY r.assignedConsultant.id, r.assignedConsultant.fullName
         """)
-    List<Object[]> getConsultantPerformanceWithTarget(@Param("periodId") Long periodId);
+    List<Object[]> getConsultantPerformanceWithTarget(@Param("periodId") Long periodId, @Param("regionId") Long regionId);
 
     @org.springframework.data.jpa.repository.Modifying
     @Query("""
@@ -188,9 +196,10 @@ public interface CustomerBillingRecordRepository extends JpaRepository<CustomerB
             r.syncWarning = 'NONE',
             r.syncWarningNote = NULL
         WHERE r.billingPeriod.id = :periodId
+          AND (:regionId IS NULL OR r.region.id = :regionId)
           AND r.debtStatus != 'DA_GACH_NO'
         """)
-    int markAllDebtByPeriodId(@Param("periodId") Long periodId, @Param("user") vn.viettel.khdn.billing_platform.model.User user, @Param("now") java.time.Instant now);
+    int markAllDebtByPeriodId(@Param("periodId") Long periodId, @Param("user") vn.viettel.khdn.billing_platform.model.User user, @Param("now") java.time.Instant now, @Param("regionId") Long regionId);
 
     @org.springframework.data.jpa.repository.Modifying
     @Query("""
@@ -214,7 +223,8 @@ public interface CustomerBillingRecordRepository extends JpaRepository<CustomerB
         FROM CustomerBillingRecord r
         WHERE r.collectedAt >= :startOfDay AND r.collectedAt < :endOfDay
           AND r.collectionStatus = 'DA_THANH_TOAN'
+          AND (:regionId IS NULL OR r.region.id = :regionId)
         GROUP BY r.assignedConsultant.id, r.assignedConsultant.fullName
         """)
-    List<Object[]> getConsultantDailyStats(@Param("startOfDay") java.time.Instant startOfDay, @Param("endOfDay") java.time.Instant endOfDay);
+    List<Object[]> getConsultantDailyStats(@Param("startOfDay") java.time.Instant startOfDay, @Param("endOfDay") java.time.Instant endOfDay, @Param("regionId") Long regionId);
 }

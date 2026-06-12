@@ -71,9 +71,11 @@ public class CustomerRecordService {
             endOfDay = billPrintedDate.plusDays(1).atStartOfDay(ZoneId.of("Asia/Ho_Chi_Minh")).toInstant();
         }
 
-        if (currentUser.getRole() == RoleEnum.MANAGER) {
+        Long regionId = currentUser.getRole() == RoleEnum.ADMIN ? null : (currentUser.getRegion() != null ? currentUser.getRegion().getId() : null);
+
+        if (currentUser.getRole() == RoleEnum.MANAGER || currentUser.getRole() == RoleEnum.ADMIN) {
             return recordRepository.searchAll(
-                periodId, collectionStatus, debtStatus, assignedUserId,
+                periodId, regionId, collectionStatus, debtStatus, assignedUserId,
                 startOfDay, endOfDay, search, pageable);
         } else {
             return recordRepository.searchByConsultant(
@@ -90,6 +92,10 @@ public class CustomerRecordService {
         if (currentUser.getRole() == RoleEnum.CONSULTANT) {
             if (record.getAssignedConsultant() == null
                 || !record.getAssignedConsultant().getId().equals(currentUser.getId())) {
+                throw new AccessDeniedException("Bạn không có quyền xem bản ghi này");
+            }
+        } else if (currentUser.getRole() == RoleEnum.MANAGER) {
+            if (record.getRegion() == null || currentUser.getRegion() == null || !record.getRegion().getId().equals(currentUser.getRegion().getId())) {
                 throw new AccessDeniedException("Bạn không có quyền xem bản ghi này");
             }
         }
@@ -119,6 +125,7 @@ public class CustomerRecordService {
         record.setCollectionStatus(CollectionStatusEnum.CHUA_THU);
         record.setDebtStatus(DebtStatusEnum.CHUA_GACH_NO);
         record.setSyncWarning(SyncWarningEnum.NONE);
+        record.setRegion(currentUser.getRole() == RoleEnum.ADMIN ? null : currentUser.getRegion());
 
         return recordRepository.save(record);
     }
@@ -181,8 +188,9 @@ public class CustomerRecordService {
      */
     @org.springframework.transaction.annotation.Transactional
     public int markDebtByPeriod(Long periodId, User currentUser) {
-        if (currentUser.getRole() == RoleEnum.MANAGER) {
-            return recordRepository.markAllDebtByPeriodId(periodId, currentUser, Instant.now());
+        Long regionId = currentUser.getRole() == RoleEnum.ADMIN ? null : (currentUser.getRegion() != null ? currentUser.getRegion().getId() : null);
+        if (currentUser.getRole() == RoleEnum.MANAGER || currentUser.getRole() == RoleEnum.ADMIN) {
+            return recordRepository.markAllDebtByPeriodId(periodId, currentUser, Instant.now(), regionId);
         } else {
             return recordRepository.markAllDebtByPeriodIdAndConsultant(periodId, currentUser, Instant.now(), currentUser.getId());
         }
@@ -200,8 +208,9 @@ public class CustomerRecordService {
         }
 
         List<Long> ids;
-        if (currentUser.getRole() == RoleEnum.MANAGER) {
-            ids = recordRepository.findAllIdsAll(periodId, collectionStatus, debtStatus, assignedUserId, startOfDay, endOfDay, search);
+        Long regionId = currentUser.getRole() == RoleEnum.ADMIN ? null : (currentUser.getRegion() != null ? currentUser.getRegion().getId() : null);
+        if (currentUser.getRole() == RoleEnum.MANAGER || currentUser.getRole() == RoleEnum.ADMIN) {
+            ids = recordRepository.findAllIdsAll(periodId, regionId, collectionStatus, debtStatus, assignedUserId, startOfDay, endOfDay, search);
         } else {
             ids = recordRepository.findAllIdsByConsultant(currentUser.getId(), periodId, collectionStatus, debtStatus, startOfDay, endOfDay, search);
         }
@@ -237,8 +246,9 @@ public class CustomerRecordService {
         }
 
         List<Long> ids;
-        if (currentUser.getRole() == RoleEnum.MANAGER) {
-            ids = recordRepository.findAllIdsAll(periodId, collectionStatus, debtStatus, assignedUserId, startOfDay, endOfDay, search);
+        Long regionId = currentUser.getRole() == RoleEnum.ADMIN ? null : (currentUser.getRegion() != null ? currentUser.getRegion().getId() : null);
+        if (currentUser.getRole() == RoleEnum.MANAGER || currentUser.getRole() == RoleEnum.ADMIN) {
+            ids = recordRepository.findAllIdsAll(periodId, regionId, collectionStatus, debtStatus, assignedUserId, startOfDay, endOfDay, search);
         } else {
             ids = recordRepository.findAllIdsByConsultant(currentUser.getId(), periodId, collectionStatus, debtStatus, startOfDay, endOfDay, search);
         }
@@ -267,8 +277,9 @@ public class CustomerRecordService {
      * - DA_THANH_TOAN + CHUA_GACH_NO: đã thu tiền nhưng chưa gạch nợ Viettel
      * - INCONSISTENT / COLLECTED_NOT_MARKED từ import đối chiếu
      */
-    public Page<CustomerBillingRecord> getWarnings(Long periodId, Pageable pageable) {
-        return recordRepository.findWarningsByPeriod(periodId, pageable);
+    public Page<CustomerBillingRecord> getWarnings(Long periodId, User currentUser, Pageable pageable) {
+        Long regionId = currentUser.getRole() == RoleEnum.ADMIN ? null : (currentUser.getRegion() != null ? currentUser.getRegion().getId() : null);
+        return recordRepository.findWarningsByPeriod(periodId, regionId, pageable);
     }
 
     /**
@@ -282,8 +293,13 @@ public class CustomerRecordService {
             throw new IllegalStateException("Chưa thu tiền, không thể lấy dữ liệu in bill");
         }
 
-        StoreConfig store = storeConfigRepository.findFirstByOrderByIdAsc()
-            .orElse(new StoreConfig()); // Trả về config rỗng nếu chưa cấu hình
+        Long regionId = currentUser.getRole() == RoleEnum.ADMIN ? null : (currentUser.getRegion() != null ? currentUser.getRegion().getId() : null);
+        StoreConfig store;
+        if (regionId != null) {
+            store = storeConfigRepository.findByRegionId(regionId).orElse(new StoreConfig());
+        } else {
+            store = storeConfigRepository.findFirstByOrderByIdAsc().orElse(new StoreConfig());
+        }
 
         return new ResBillDataDTO(
             store.getStoreName(),

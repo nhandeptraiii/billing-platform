@@ -8,6 +8,8 @@ import vn.viettel.khdn.billing_platform.model.StoreConfig;
 
 public interface StoreConfigRepository extends JpaRepository<StoreConfig, Long> {
 
-    // Luôn lấy dòng đầu tiên (singleton)
+    Optional<StoreConfig> findByRegionId(Long regionId);
+    
+    // Fallback if region is null
     Optional<StoreConfig> findFirstByOrderByIdAsc();
 }

@@ -18,16 +18,20 @@ import vn.viettel.khdn.billing_platform.model.dto.ReqUserUpdateMeDTO;
 import vn.viettel.khdn.billing_platform.model.dto.ResUserDTO;
 import vn.viettel.khdn.billing_platform.model.enums.RoleEnum;
 import vn.viettel.khdn.billing_platform.repository.UserRepository;
+import vn.viettel.khdn.billing_platform.repository.RegionRepository;
+import vn.viettel.khdn.billing_platform.model.Region;
 
 @Service
 @Transactional
 public class UserService {
 
     private final UserRepository userRepository;
+    private final RegionRepository regionRepository;
     private final PasswordEncoder passwordEncoder;
 
-    public UserService(UserRepository userRepository, PasswordEncoder passwordEncoder) {
+    public UserService(UserRepository userRepository, RegionRepository regionRepository, PasswordEncoder passwordEncoder) {
         this.userRepository = userRepository;
+        this.regionRepository = regionRepository;
         this.passwordEncoder = passwordEncoder;
     }
 
@@ -70,6 +74,11 @@ public class UserService {
         user.setPhone(req.phone());
         user.setPassword(passwordEncoder.encode(req.password()));
         user.setRole(req.role());
+        
+        Region region = regionRepository.findById(req.regionId())
+            .orElseThrow(() -> new EntityNotFoundException("Không tìm thấy khu vực ID: " + req.regionId()));
+        user.setRegion(region);
+
         user.setStatus("ACTIVE");
         User saved = userRepository.save(user);
         return convertToResUserDTO(saved);
@@ -81,6 +90,11 @@ public class UserService {
         user.setFullName(req.fullName());
         user.setPhone(req.phone());
         user.setRole(req.role());
+
+        Region region = regionRepository.findById(req.regionId())
+            .orElseThrow(() -> new EntityNotFoundException("Không tìm thấy khu vực ID: " + req.regionId()));
+        user.setRegion(region);
+
         User saved = userRepository.save(user);
         return convertToResUserDTO(saved);
     }
@@ -137,6 +151,8 @@ public class UserService {
             user.getPhone(),
             user.getStatus(),
             user.getRole(),
+            user.getRegion() != null ? user.getRegion().getId() : null,
+            user.getRegion() != null ? user.getRegion().getName() : null,
             user.getCreatedAt(),
             user.getUpdatedAt()
         );
