@@ -56,7 +56,7 @@ public class UserController {
         return ResponseEntity.ok(userService.updateMe(username, req));
     }
 
-    @PreAuthorize("hasAnyAuthority('MANAGER', 'ADMIN')")
+    @PreAuthorize("isAuthenticated()")
     @GetMapping
     public ResponseEntity<Page<ResUserDTO>> getUsers(
             @RequestParam(value = "keyword", required = false) String keyword,
@@ -74,7 +74,8 @@ public class UserController {
             } catch (Exception ignored) {
             }
         }
-        return ResponseEntity.ok(userService.searchUsers(roleEnum, keyword, pageable));
+        ResUserDTO currentUser = getCurrentUser();
+        return ResponseEntity.ok(userService.searchUsers(currentUser, roleEnum, keyword, pageable));
     }
 
     @PreAuthorize("hasAnyAuthority('MANAGER', 'ADMIN')")

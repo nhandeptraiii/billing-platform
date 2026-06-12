@@ -22,6 +22,7 @@ public interface UserRepository extends JpaRepository<User, Long> {
     @Query(value = """
             SELECT u FROM User u
             WHERE (:role IS NULL OR u.role = :role)
+              AND (:regionId IS NULL OR u.region.id = :regionId)
               AND (
                 :keyword IS NULL
                 OR LOWER(u.fullName) LIKE LOWER(CONCAT('%', :keyword, '%'))
@@ -30,6 +31,7 @@ public interface UserRepository extends JpaRepository<User, Long> {
               )
             """)
     Page<User> searchUsers(
+            @Param("regionId") Long regionId,
             @Param("role") RoleEnum role,
             @Param("keyword") String keyword,
             Pageable pageable);

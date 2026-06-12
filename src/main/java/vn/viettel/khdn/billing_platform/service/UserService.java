@@ -46,8 +46,9 @@ public class UserService {
     }
 
     @Transactional(readOnly = true)
-    public Page<ResUserDTO> searchUsers(RoleEnum role, String keyword, Pageable pageable) {
-        return userRepository.searchUsers(role, keyword, pageable)
+    public Page<ResUserDTO> searchUsers(ResUserDTO currentUser, RoleEnum role, String keyword, Pageable pageable) {
+        Long regionId = currentUser.role() == RoleEnum.ADMIN ? null : currentUser.regionId();
+        return userRepository.searchUsers(regionId, role, keyword, pageable)
             .map(this::convertToResUserDTO);
     }
 
