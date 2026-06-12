@@ -1,12 +1,16 @@
 {
   "info": {
-    "name": "Billing Platform APIs",
+    "name": "Billing Platform APIs v3 (Region)",
+    "description": "API collection cập nhật với tính năng Khu vực (Region), Role ADMIN/MANAGER/CONSULTANT. Luồng: Tạo Region → Tạo User với regionId → Login → Test APIs.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "variable": [
     { "key": "baseUrl", "value": "http://localhost:8080" },
     { "key": "token", "value": "" },
+    { "key": "managerToken", "value": "" },
+    { "key": "consultantToken", "value": "" },
     { "key": "userId", "value": "" },
+    { "key": "regionId", "value": "" },
     { "key": "periodId", "value": "" },
     { "key": "recordId", "value": "" }
   ],
@@ -15,14 +19,20 @@
       "name": "1. Auth",
       "item": [
         {
-          "name": "Login",
+          "name": "Login (ADMIN)",
           "event": [
             {
               "listen": "test",
               "script": {
                 "exec": [
                   "const json = pm.response.json();",
-                  "if (json.accessToken) pm.collectionVariables.set('token', json.accessToken);"
+                  "if (json.accessToken) {",
+                  "  pm.collectionVariables.set('token', json.accessToken);",
+                  "  console.log('✅ Token saved:', json.accessToken.substring(0, 40) + '...');",
+                  "} else {",
+                  "  console.log('❌ No token in response:', JSON.stringify(json));",
+                  "}",
+                  "pm.test('Login thành công', () => pm.response.to.have.status(200));"
                 ],
                 "type": "text/javascript"
               }
@@ -39,7 +49,49 @@
           }
         },
         {
-          "name": "Get Current Account",
+          "name": "Login (MANAGER) - Save managerToken",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const json = pm.response.json();",
+                  "if (json.accessToken) {",
+                  "  pm.collectionVariables.set('managerToken', json.accessToken);",
+                  "  console.log('✅ Manager token saved');",
+                  "}",
+                  "pm.test('Manager login thành công', () => pm.response.to.have.status(200));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"manager_test\",\n  \"password\": \"Test@12345\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/login", "host": ["{{baseUrl}}"], "path": ["login"] }
+          }
+        },
+        {
+          "name": "Get Current Account (/account)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const json = pm.response.json();",
+                  "pm.test('Response có regionId', () => pm.expect(json).to.have.property('regionId'));",
+                  "pm.test('Response có regionName', () => pm.expect(json).to.have.property('regionName'));",
+                  "console.log('User region:', json.regionId, json.regionName);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
           "request": {
             "method": "GET",
             "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
@@ -57,18 +109,68 @@
       ]
     },
     {
-      "name": "2. User Management",
+      "name": "2. Region (Khu Vực) - NEW",
+      "description": "Quản lý khu vực. ADMIN tạo và sửa, tất cả roles có thể xem danh sách.",
       "item": [
         {
-          "name": "Get Current User (Me)",
+          "name": "GET All Regions",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const json = pm.response.json();",
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "if (Array.isArray(json) && json.length > 0) {",
+                  "  pm.collectionVariables.set('regionId', json[0].id);",
+                  "  console.log('✅ regionId saved:', json[0].id, '-', json[0].name);",
+                  "} else {",
+                  "  console.log('⚠️ Danh sách region rỗng. Hãy tạo region trước!');",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
           "request": {
             "method": "GET",
             "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
-            "url": { "raw": "{{baseUrl}}/users/me", "host": ["{{baseUrl}}"], "path": ["users", "me"] }
+            "url": { "raw": "{{baseUrl}}/regions", "host": ["{{baseUrl}}"], "path": ["regions"] }
           }
         },
         {
-          "name": "Change Password (Me)",
+          "name": "POST Create Region (ADMIN only)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const json = pm.response.json();",
+                  "pm.test('Tạo region thành công', () => pm.response.to.have.status(200));",
+                  "if (json.id) {",
+                  "  pm.collectionVariables.set('regionId', json.id);",
+                  "  console.log('✅ regionId saved:', json.id, '-', json.name);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Huyện Thạch Thất\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/regions", "host": ["{{baseUrl}}"], "path": ["regions"] }
+          }
+        },
+        {
+          "name": "PUT Update Region (ADMIN only)",
           "request": {
             "method": "PUT",
             "header": [
@@ -77,13 +179,40 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"oldPassword\": \"123456\",\n  \"newPassword\": \"newpass123\"\n}"
+              "raw": "{\n  \"name\": \"Huyện Thạch Thất (Updated)\"\n}"
             },
-            "url": { "raw": "{{baseUrl}}/users/me/password", "host": ["{{baseUrl}}"], "path": ["users", "me", "password"] }
+            "url": { "raw": "{{baseUrl}}/regions/{{regionId}}", "host": ["{{baseUrl}}"], "path": ["regions", "{{regionId}}"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "3. User Management",
+      "description": "MANAGER và ADMIN quản lý user. Bắt buộc truyền regionId khi tạo/sửa user.",
+      "item": [
+        {
+          "name": "GET Current User (Me)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const json = pm.response.json();",
+                  "pm.test('Response có regionId', () => pm.expect(json).to.have.property('regionId'));",
+                  "console.log('Role:', json.role, '| Region:', json.regionId, json.regionName);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": { "raw": "{{baseUrl}}/users/me", "host": ["{{baseUrl}}"], "path": ["users", "me"] }
           }
         },
         {
-          "name": "Get Users",
+          "name": "GET Users (with filters)",
           "request": {
             "method": "GET",
             "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
@@ -101,7 +230,24 @@
           }
         },
         {
-          "name": "Create User",
+          "name": "POST Create User (MANAGER / ADMIN) - CÓ regionId",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const json = pm.response.json();",
+                  "pm.test('Tạo user thành công', () => pm.response.to.have.status(201));",
+                  "if (json.id) {",
+                  "  pm.collectionVariables.set('userId', json.id);",
+                  "  console.log('✅ userId saved:', json.id);",
+                  "  console.log('Region:', json.regionId, json.regionName);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
           "request": {
             "method": "POST",
             "header": [
@@ -110,13 +256,28 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"username\": \"consultant1@billing.vn\",\n  \"fullName\": \"Nguyễn Văn A\",\n  \"phone\": \"0987654321\",\n  \"password\": \"123456\",\n  \"role\": \"CONSULTANT\"\n}"
+              "raw": "{\n  \"username\": \"manager_test\",\n  \"fullName\": \"Nguyen Van Manager\",\n  \"phone\": \"0912345678\",\n  \"password\": \"Test@12345\",\n  \"role\": \"MANAGER\",\n  \"regionId\": {{regionId}}\n}"
             },
             "url": { "raw": "{{baseUrl}}/users", "host": ["{{baseUrl}}"], "path": ["users"] }
           }
         },
         {
-          "name": "Get User By ID",
+          "name": "POST Create CONSULTANT User",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"consultant01\",\n  \"fullName\": \"Tran Thi Consultant\",\n  \"phone\": \"0901234567\",\n  \"password\": \"Test@12345\",\n  \"role\": \"CONSULTANT\",\n  \"regionId\": {{regionId}}\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/users", "host": ["{{baseUrl}}"], "path": ["users"] }
+          }
+        },
+        {
+          "name": "GET User By ID",
           "request": {
             "method": "GET",
             "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
@@ -124,7 +285,7 @@
           }
         },
         {
-          "name": "Update User",
+          "name": "PUT Update User (CÓ regionId)",
           "request": {
             "method": "PUT",
             "header": [
@@ -133,28 +294,26 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"fullName\": \"Nguyễn Văn A (Updated)\",\n  \"phone\": \"0987654321\",\n  \"role\": \"CONSULTANT\"\n}"
+              "raw": "{\n  \"fullName\": \"Nguyen Van Manager (Updated)\",\n  \"phone\": \"0912345678\",\n  \"role\": \"MANAGER\",\n  \"regionId\": {{regionId}}\n}"
             },
             "url": { "raw": "{{baseUrl}}/users/{{userId}}", "host": ["{{baseUrl}}"], "path": ["users", "{{userId}}"] }
           }
         },
         {
-          "name": "Update User Status",
+          "name": "PATCH Update User Status",
           "request": {
             "method": "PATCH",
             "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
             "url": {
-              "raw": "{{baseUrl}}/users/{{userId}}/status?status=false",
+              "raw": "{{baseUrl}}/users/{{userId}}/status?status=INACTIVE",
               "host": ["{{baseUrl}}"],
               "path": ["users", "{{userId}}", "status"],
-              "query": [
-                { "key": "status", "value": "false" }
-              ]
+              "query": [{ "key": "status", "value": "INACTIVE" }]
             }
           }
         },
         {
-          "name": "Reset User Password",
+          "name": "PUT Reset User Password",
           "request": {
             "method": "PUT",
             "header": [
@@ -163,13 +322,28 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"newPassword\": \"123456\"\n}"
+              "raw": "{\n  \"newPassword\": \"Test@12345\"\n}"
             },
             "url": { "raw": "{{baseUrl}}/users/{{userId}}/reset-password", "host": ["{{baseUrl}}"], "path": ["users", "{{userId}}", "reset-password"] }
           }
         },
         {
-          "name": "Delete User",
+          "name": "PUT Change My Password",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"oldPassword\": \"123456\",\n  \"newPassword\": \"newpass123\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/users/me/password", "host": ["{{baseUrl}}"], "path": ["users", "me", "password"] }
+          }
+        },
+        {
+          "name": "DELETE User",
           "request": {
             "method": "DELETE",
             "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
@@ -179,10 +353,25 @@
       ]
     },
     {
-      "name": "3. Billing Period",
+      "name": "4. Billing Period (Kỳ thanh toán)",
       "item": [
         {
-          "name": "Get Billing Periods",
+          "name": "GET Billing Periods",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const json = pm.response.json();",
+                  "if (json.content && json.content.length > 0) {",
+                  "  pm.collectionVariables.set('periodId', json.content[0].id);",
+                  "  console.log('✅ periodId saved:', json.content[0].id);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
           "request": {
             "method": "GET",
             "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
@@ -198,7 +387,7 @@
           }
         },
         {
-          "name": "Get Billing Period By ID",
+          "name": "GET Billing Period By ID",
           "request": {
             "method": "GET",
             "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
@@ -206,21 +395,21 @@
           }
         },
         {
-          "name": "Import Billing Period (Excel)",
+          "name": "POST Import Đầu Kỳ (MANAGER/ADMIN)",
           "request": {
             "method": "POST",
-            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "header": [{ "key": "Authorization", "value": "Bearer {{managerToken}}" }],
             "body": {
               "mode": "formdata",
               "formdata": [
-                { "key": "file", "type": "file", "src": [], "description": "Select Excel file (.xlsx)" }
+                { "key": "file", "type": "file", "src": [], "description": "Chọn file Excel mẫu đầu kỳ (.xlsx)" }
               ]
             },
             "url": { "raw": "{{baseUrl}}/billing-periods/import", "host": ["{{baseUrl}}"], "path": ["billing-periods", "import"] }
           }
         },
         {
-          "name": "Download Import Template",
+          "name": "GET Download Import Template",
           "request": {
             "method": "GET",
             "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
@@ -228,7 +417,7 @@
           }
         },
         {
-          "name": "Close Billing Period",
+          "name": "PATCH Close Billing Period",
           "request": {
             "method": "PATCH",
             "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
@@ -238,13 +427,31 @@
       ]
     },
     {
-      "name": "4. Customer Records",
+      "name": "5. Customer Records (Danh sách thu cước)",
+      "description": "MANAGER xem toàn khu vực, CONSULTANT chỉ xem của mình.",
       "item": [
         {
-          "name": "Get Records",
+          "name": "GET Records (tháng hiện tại)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const json = pm.response.json();",
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "if (json.content && json.content.length > 0) {",
+                  "  pm.collectionVariables.set('recordId', json.content[0].id);",
+                  "  console.log('✅ recordId saved:', json.content[0].id);",
+                  "  console.log('Total records:', json.totalElements);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
           "request": {
             "method": "GET",
-            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "header": [{ "key": "Authorization", "value": "Bearer {{managerToken}}" }],
             "url": {
               "raw": "{{baseUrl}}/records?page=0&size=20",
               "host": ["{{baseUrl}}"],
@@ -252,34 +459,84 @@
               "query": [
                 { "key": "page", "value": "0" },
                 { "key": "size", "value": "20" },
-                { "key": "periodId", "value": "{{periodId}}", "disabled": true },
-                { "key": "status", "value": "CHUA_THU", "disabled": true },
-                { "key": "search", "value": "", "disabled": true },
-                { "key": "province", "value": "", "disabled": true },
-                { "key": "ward", "value": "", "disabled": true },
-                { "key": "hamlet", "value": "", "disabled": true },
-                { "key": "street", "value": "", "disabled": true }
+                { "key": "month", "value": "6", "disabled": true },
+                { "key": "year", "value": "2026", "disabled": true },
+                { "key": "collectionStatus", "value": "CHUA_THU", "disabled": true },
+                { "key": "debtStatus", "value": "CHUA_GACH_NO", "disabled": true },
+                { "key": "assignedUserId", "value": "", "disabled": true },
+                { "key": "billPrintedDate", "value": "2026-06-01", "disabled": true },
+                { "key": "search", "value": "", "disabled": true }
               ]
             }
           }
         },
         {
-          "name": "Create Record (Manual)",
+          "name": "GET Records (lọc theo tháng/năm)",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{managerToken}}" }],
+            "url": {
+              "raw": "{{baseUrl}}/records?month=6&year=2026&page=0&size=20",
+              "host": ["{{baseUrl}}"],
+              "path": ["records"],
+              "query": [
+                { "key": "month", "value": "6" },
+                { "key": "year", "value": "2026" },
+                { "key": "page", "value": "0" },
+                { "key": "size", "value": "20" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "GET Export Records to Excel",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{managerToken}}" }],
+            "url": {
+              "raw": "{{baseUrl}}/records/export?month=6&year=2026",
+              "host": ["{{baseUrl}}"],
+              "path": ["records", "export"],
+              "query": [
+                { "key": "month", "value": "6" },
+                { "key": "year", "value": "2026" },
+                { "key": "collectionStatus", "value": "CHUA_THU", "disabled": true }
+              ]
+            }
+          }
+        },
+        {
+          "name": "POST Create Record (Manual - MANAGER/ADMIN)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const json = pm.response.json();",
+                  "if (json.id) {",
+                  "  pm.collectionVariables.set('recordId', json.id);",
+                  "  console.log('✅ recordId saved:', json.id);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
           "request": {
             "method": "POST",
             "header": [
-              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Authorization", "value": "Bearer {{managerToken}}" },
               { "key": "Content-Type", "value": "application/json" }
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"billingPeriodId\": 1,\n  \"customerCode\": \"KH001\",\n  \"customerName\": \"Nguyễn Văn A\",\n  \"phoneNumber\": \"0987654321\",\n  \"amountDue\": 150000,\n  \"province\": \"Hà Nội\",\n  \"fullAddress\": \"Hà Nội\"\n}"
+              "raw": "{\n  \"billingPeriodId\": {{periodId}},\n  \"customerCode\": \"KH001\",\n  \"customerName\": \"Nguyen Van A\",\n  \"subscriberNumber\": \"0987654321\",\n  \"phoneNumber\": \"0987654321\",\n  \"amountDue\": 150000,\n  \"fullAddress\": \"Thôn A, Xã B, Huyện Thạch Thất\",\n  \"serviceType\": \"Internet\",\n  \"assignedConsultantUsername\": \"consultant01\"\n}"
             },
             "url": { "raw": "{{baseUrl}}/records", "host": ["{{baseUrl}}"], "path": ["records"] }
           }
         },
         {
-          "name": "Get Record By ID",
+          "name": "GET Record By ID",
           "request": {
             "method": "GET",
             "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
@@ -287,7 +544,21 @@
           }
         },
         {
-          "name": "Print Bill",
+          "name": "PATCH Print Bill / Thu tiền",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const json = pm.response.json();",
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('collectionStatus = DA_THANH_TOAN', () => pm.expect(json.collectionStatus).to.eql('DA_THANH_TOAN'));",
+                  "console.log('✅ Bill printed. Status:', json.collectionStatus);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
           "request": {
             "method": "PATCH",
             "header": [
@@ -296,13 +567,27 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"collectedAmount\": 250000\n}"
+              "raw": "{\n  \"collectedAmount\": 150000\n}"
             },
             "url": { "raw": "{{baseUrl}}/records/{{recordId}}/print-bill", "host": ["{{baseUrl}}"], "path": ["records", "{{recordId}}", "print-bill"] }
           }
         },
         {
-          "name": "Mark Debt",
+          "name": "PATCH Mark Debt / Gạch nợ",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const json = pm.response.json();",
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('debtStatus = DA_GACH_NO', () => pm.expect(json.debtStatus).to.eql('DA_GACH_NO'));",
+                  "console.log('✅ Debt marked. Status:', json.debtStatus);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
           "request": {
             "method": "PATCH",
             "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
@@ -310,7 +595,7 @@
           }
         },
         {
-          "name": "Get Bill Data",
+          "name": "GET Bill Data (cho Mobile in bill)",
           "request": {
             "method": "GET",
             "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
@@ -318,39 +603,89 @@
           }
         },
         {
-          "name": "Import Reconciliation (Đối chiếu)",
+          "name": "PATCH Bulk Mark Debt (theo periodId)",
           "request": {
-            "method": "POST",
-            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
-            "body": {
-              "mode": "formdata",
-              "formdata": [
-                { "key": "file", "type": "file", "src": [], "description": "Select Excel file (.xlsx)" }
-              ]
-            },
+            "method": "PATCH",
+            "header": [{ "key": "Authorization", "value": "Bearer {{managerToken}}" }],
             "url": {
-              "raw": "{{baseUrl}}/records/import-reconciliation?periodId={{periodId}}",
+              "raw": "{{baseUrl}}/records/bulk-mark-debt?periodId={{periodId}}",
               "host": ["{{baseUrl}}"],
-              "path": ["records", "import-reconciliation"],
+              "path": ["records", "bulk-mark-debt"],
+              "query": [{ "key": "periodId", "value": "{{periodId}}" }]
+            }
+          }
+        },
+        {
+          "name": "PATCH Bulk Mark Debt (với bộ lọc)",
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Authorization", "value": "Bearer {{managerToken}}" }],
+            "url": {
+              "raw": "{{baseUrl}}/records/bulk-mark-debt/filter?month=6&year=2026&collectionStatus=DA_THANH_TOAN",
+              "host": ["{{baseUrl}}"],
+              "path": ["records", "bulk-mark-debt", "filter"],
               "query": [
-                { "key": "periodId", "value": "{{periodId}}" }
+                { "key": "month", "value": "6" },
+                { "key": "year", "value": "2026" },
+                { "key": "collectionStatus", "value": "DA_THANH_TOAN" },
+                { "key": "debtStatus", "value": "CHUA_GACH_NO", "disabled": true }
               ]
             }
           }
         },
         {
-          "name": "Download Reconciliation Template",
+          "name": "PATCH Bulk Pay (với bộ lọc)",
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Authorization", "value": "Bearer {{managerToken}}" }],
+            "url": {
+              "raw": "{{baseUrl}}/records/bulk-pay/filter?month=6&year=2026",
+              "host": ["{{baseUrl}}"],
+              "path": ["records", "bulk-pay", "filter"],
+              "query": [
+                { "key": "month", "value": "6" },
+                { "key": "year", "value": "2026" },
+                { "key": "collectionStatus", "value": "CHUA_THU", "disabled": true }
+              ]
+            }
+          }
+        },
+        {
+          "name": "POST Import Đối Chiếu Gạch Nợ (MANAGER/ADMIN)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Authorization", "value": "Bearer {{managerToken}}" }],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                { "key": "file", "type": "file", "src": [], "description": "Chọn file báo cáo Excel từ Viettel (.xlsx)" }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/records/import-reconciliation?month=6&year=2026",
+              "host": ["{{baseUrl}}"],
+              "path": ["records", "import-reconciliation"],
+              "query": [
+                { "key": "month", "value": "6" },
+                { "key": "year", "value": "2026" },
+                { "key": "periodId", "value": "{{periodId}}", "disabled": true }
+              ]
+            }
+          }
+        },
+        {
+          "name": "GET Download Reconciliation Template",
           "request": {
             "method": "GET",
-            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "header": [{ "key": "Authorization", "value": "Bearer {{managerToken}}" }],
             "url": { "raw": "{{baseUrl}}/records/import-reconciliation/template", "host": ["{{baseUrl}}"], "path": ["records", "import-reconciliation", "template"] }
           }
         },
         {
-          "name": "Get Warnings",
+          "name": "GET Warnings (cảnh báo chưa gạch nợ)",
           "request": {
             "method": "GET",
-            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "header": [{ "key": "Authorization", "value": "Bearer {{managerToken}}" }],
             "url": {
               "raw": "{{baseUrl}}/records/warnings?periodId={{periodId}}&page=0&size=20",
               "host": ["{{baseUrl}}"],
@@ -366,18 +701,47 @@
       ]
     },
     {
-      "name": "5. Store Config",
+      "name": "6. Store Config (Cấu hình in bill theo Khu vực)",
+      "description": "Mỗi khu vực có cấu hình riêng. MANAGER cấu hình cho khu vực của mình.",
       "item": [
         {
-          "name": "Get Config",
+          "name": "GET Config (tự động lấy theo khu vực của user)",
           "request": {
             "method": "GET",
-            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "header": [{ "key": "Authorization", "value": "Bearer {{managerToken}}" }],
             "url": { "raw": "{{baseUrl}}/store-config", "host": ["{{baseUrl}}"], "path": ["store-config"] }
           }
         },
         {
-          "name": "Update Config",
+          "name": "GET Config theo regionId (ADMIN)",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": {
+              "raw": "{{baseUrl}}/store-config?regionId={{regionId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["store-config"],
+              "query": [{ "key": "regionId", "value": "{{regionId}}" }]
+            }
+          }
+        },
+        {
+          "name": "PUT Update Config (MANAGER/ADMIN)",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{managerToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"storeName\": \"Viettel Thạch Thất\",\n  \"address\": \"Thị trấn Thạch Thất, Huyện Thạch Thất, Hà Nội\",\n  \"hotline\": \"0987654321\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/store-config", "host": ["{{baseUrl}}"], "path": ["store-config"] }
+          }
+        },
+        {
+          "name": "PUT Update Config cho regionId cụ thể (ADMIN)",
           "request": {
             "method": "PUT",
             "header": [
@@ -386,23 +750,115 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"storeName\": \"Viettel Store\",\n  \"address\": \"Hà Nội\",\n  \"hotline\": \"18008098\",\n  \"adsText\": \"Cảm ơn quý khách\"\n}"
+              "raw": "{\n  \"storeName\": \"Viettel Thạch Thất\",\n  \"address\": \"Thị trấn Thạch Thất, Hà Nội\",\n  \"hotline\": \"0987654321\"\n}"
             },
-            "url": { "raw": "{{baseUrl}}/store-config", "host": ["{{baseUrl}}"], "path": ["store-config"] }
+            "url": {
+              "raw": "{{baseUrl}}/store-config?regionId={{regionId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["store-config"],
+              "query": [{ "key": "regionId", "value": "{{regionId}}" }]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "7. Dashboard",
+      "description": "MANAGER/ADMIN xem theo khu vực. CONSULTANT xem của mình. Dữ liệu tự động filter theo region của người đăng nhập.",
+      "item": [
+        {
+          "name": "GET Overview (tháng hiện tại)",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{managerToken}}" }],
+            "url": { "raw": "{{baseUrl}}/dashboard/overview", "host": ["{{baseUrl}}"], "path": ["dashboard", "overview"] }
           }
         },
         {
-          "name": "Upload QR Image",
+          "name": "GET Overview (theo tháng/năm cụ thể)",
           "request": {
-            "method": "POST",
-            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
-            "body": {
-              "mode": "formdata",
-              "formdata": [
-                { "key": "file", "type": "file", "src": [], "description": "Select Image File" }
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{managerToken}}" }],
+            "url": {
+              "raw": "{{baseUrl}}/dashboard/overview?month=6&year=2026",
+              "host": ["{{baseUrl}}"],
+              "path": ["dashboard", "overview"],
+              "query": [
+                { "key": "month", "value": "6" },
+                { "key": "year", "value": "2026" }
               ]
-            },
-            "url": { "raw": "{{baseUrl}}/store-config/qr", "host": ["{{baseUrl}}"], "path": ["store-config", "qr"] }
+            }
+          }
+        },
+        {
+          "name": "GET Consultant Performance (MANAGER/ADMIN)",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{managerToken}}" }],
+            "url": {
+              "raw": "{{baseUrl}}/dashboard/consultants?month=6&year=2026",
+              "host": ["{{baseUrl}}"],
+              "path": ["dashboard", "consultants"],
+              "query": [
+                { "key": "month", "value": "6" },
+                { "key": "year", "value": "2026" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "GET Export Consultant Performance (Excel)",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{managerToken}}" }],
+            "url": {
+              "raw": "{{baseUrl}}/dashboard/consultants/export?month=6&year=2026",
+              "host": ["{{baseUrl}}"],
+              "path": ["dashboard", "consultants", "export"],
+              "query": [
+                { "key": "month", "value": "6" },
+                { "key": "year", "value": "2026" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "GET Warnings Dashboard (MANAGER/ADMIN)",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{managerToken}}" }],
+            "url": {
+              "raw": "{{baseUrl}}/dashboard/warnings?month=6&year=2026&page=0&size=20",
+              "host": ["{{baseUrl}}"],
+              "path": ["dashboard", "warnings"],
+              "query": [
+                { "key": "month", "value": "6" },
+                { "key": "year", "value": "2026" },
+                { "key": "page", "value": "0" },
+                { "key": "size", "value": "20" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "GET Daily Stats (hôm nay)",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{managerToken}}" }],
+            "url": { "raw": "{{baseUrl}}/dashboard/daily-stats", "host": ["{{baseUrl}}"], "path": ["dashboard", "daily-stats"] }
+          }
+        },
+        {
+          "name": "GET Daily Stats (ngày cụ thể)",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{managerToken}}" }],
+            "url": {
+              "raw": "{{baseUrl}}/dashboard/daily-stats?date=2026-06-12",
+              "host": ["{{baseUrl}}"],
+              "path": ["dashboard", "daily-stats"],
+              "query": [{ "key": "date", "value": "2026-06-12" }]
+            }
           }
         }
       ]
