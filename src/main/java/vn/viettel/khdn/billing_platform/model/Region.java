@@ -5,11 +5,13 @@ import java.time.Instant;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 
 @Getter
 @Setter
 @Entity
 @Table(name = "regions")
+@JsonIgnoreProperties({ "hibernateLazyInitializer", "handler" })
 public class Region {
 
     @Id

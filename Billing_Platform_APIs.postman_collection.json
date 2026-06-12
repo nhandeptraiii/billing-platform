@@ -343,6 +343,20 @@
           }
         },
         {
+          "name": "POST Import Consultants (MANAGER/ADMIN)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Authorization", "value": "Bearer {{managerToken}}" }],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                { "key": "file", "type": "file", "src": [], "description": "Chọn file mẫu nhân viên (.xlsx)" }
+              ]
+            },
+            "url": { "raw": "{{baseUrl}}/users/import-consultants", "host": ["{{baseUrl}}"], "path": ["users", "import-consultants"] }
+          }
+        },
+        {
           "name": "DELETE User",
           "request": {
             "method": "DELETE",

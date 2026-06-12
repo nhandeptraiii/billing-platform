@@ -194,6 +194,10 @@ public class UserService {
                     continue; // Bỏ qua các dòng thiếu dữ liệu bắt buộc
                 }
 
+                if (phone == null || !phone.matches("^0\\d{9,10}$")) {
+                    continue; // Bỏ qua nếu SĐT không hợp lệ (bắt đầu bằng 0, độ dài 10-11 số)
+                }
+
                 if (userRepository.existsByUsername(username)) {
                     continue; // Bỏ qua user đã tồn tại
                 }
