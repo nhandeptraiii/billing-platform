@@ -34,10 +34,16 @@ public class UserController {
 
     @PreAuthorize("isAuthenticated()")
     @GetMapping("/me")
-    public ResponseEntity<ResUserDTO> getCurrentUser() {
+    public ResponseEntity<ResUserDTO> getCurrentUserEndpoint() {
         String username = SecurityUtil.getCurrentUserLogin()
             .orElseThrow(() -> new jakarta.persistence.EntityNotFoundException("Chưa đăng nhập"));
         return ResponseEntity.ok(userService.getByUsername(username));
+    }
+
+    private ResUserDTO getCurrentUser() {
+        String username = SecurityUtil.getCurrentUserLogin()
+            .orElseThrow(() -> new jakarta.persistence.EntityNotFoundException("Chưa đăng nhập"));
+        return userService.getByUsername(username);
     }
 
     @PreAuthorize("isAuthenticated()")
@@ -78,14 +84,16 @@ public class UserController {
     @PreAuthorize("hasAnyAuthority('MANAGER', 'ADMIN')")
     @PostMapping
     public ResponseEntity<ResUserDTO> create(@Valid @RequestBody ReqUserCreateDTO req) {
-        return ResponseEntity.status(HttpStatus.CREATED).body(userService.create(req));
+        ResUserDTO currentUser = getCurrentUser();
+        return ResponseEntity.status(HttpStatus.CREATED).body(userService.create(req, currentUser));
     }
 
     @PreAuthorize("hasAnyAuthority('MANAGER', 'ADMIN')")
     @PutMapping("/{id}")
     public ResponseEntity<ResUserDTO> update(@PathVariable("id") Long id,
                                        @Valid @RequestBody ReqUserUpdateDTO req) {
-        return ResponseEntity.ok(userService.update(id, req));
+        ResUserDTO currentUser = getCurrentUser();
+        return ResponseEntity.ok(userService.update(id, req, currentUser));
     }
 
     @PreAuthorize("hasAnyAuthority('MANAGER', 'ADMIN')")

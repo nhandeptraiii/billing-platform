@@ -62,7 +62,7 @@ public class UserService {
         return convertToResUserDTO(user);
     }
 
-    public ResUserDTO create(ReqUserCreateDTO req) {
+    public ResUserDTO create(ReqUserCreateDTO req, ResUserDTO currentUser) {
         if (userRepository.existsByUsername(req.username())) {
             throw new EntityExistsException("Username đã tồn tại: " + req.username());
         }
@@ -74,26 +74,48 @@ public class UserService {
         user.setPhone(req.phone());
         user.setPassword(passwordEncoder.encode(req.password()));
         user.setRole(req.role());
-        
-        Region region = regionRepository.findById(req.regionId())
-            .orElseThrow(() -> new EntityNotFoundException("Không tìm thấy khu vực ID: " + req.regionId()));
-        user.setRegion(region);
+
+        if (currentUser.role() == RoleEnum.MANAGER) {
+            Region region = regionRepository.findById(currentUser.regionId())
+                .orElseThrow(() -> new EntityNotFoundException("Không tìm thấy khu vực của Manager"));
+            user.setRegion(region);
+        } else {
+            if (req.regionId() != null) {
+                Region region = regionRepository.findById(req.regionId())
+                    .orElseThrow(() -> new EntityNotFoundException("Không tìm thấy khu vực ID: " + req.regionId()));
+                user.setRegion(region);
+            } else if (req.role() != RoleEnum.ADMIN) {
+                throw new IllegalArgumentException("Khu vực không được để trống khi tạo " + req.role());
+            }
+        }
 
         user.setStatus("ACTIVE");
         User saved = userRepository.save(user);
         return convertToResUserDTO(saved);
     }
 
-    public ResUserDTO update(Long id, ReqUserUpdateDTO req) {
+    public ResUserDTO update(Long id, ReqUserUpdateDTO req, ResUserDTO currentUser) {
         User user = userRepository.findById(id)
             .orElseThrow(() -> new EntityNotFoundException("Không tìm thấy người dùng ID: " + id));
         user.setFullName(req.fullName());
         user.setPhone(req.phone());
         user.setRole(req.role());
 
-        Region region = regionRepository.findById(req.regionId())
-            .orElseThrow(() -> new EntityNotFoundException("Không tìm thấy khu vực ID: " + req.regionId()));
-        user.setRegion(region);
+        if (currentUser.role() == RoleEnum.MANAGER) {
+            Region region = regionRepository.findById(currentUser.regionId())
+                .orElseThrow(() -> new EntityNotFoundException("Không tìm thấy khu vực của Manager"));
+            user.setRegion(region);
+        } else {
+            if (req.regionId() != null) {
+                Region region = regionRepository.findById(req.regionId())
+                    .orElseThrow(() -> new EntityNotFoundException("Không tìm thấy khu vực ID: " + req.regionId()));
+                user.setRegion(region);
+            } else if (req.role() != RoleEnum.ADMIN) {
+                throw new IllegalArgumentException("Khu vực không được để trống khi cập nhật " + req.role());
+            } else {
+                user.setRegion(null);
+            }
+        }
 
         User saved = userRepository.save(user);
         return convertToResUserDTO(saved);
