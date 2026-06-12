@@ -9,17 +9,12 @@ import lombok.Setter;
 @Getter
 @Setter
 @Entity
-@Table(name = "regions", uniqueConstraints = {
-    @UniqueConstraint(columnNames = "code")
-})
+@Table(name = "regions")
 public class Region {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
-
-    @Column(length = 50, nullable = false, unique = true)
-    private String code; // Mã khu vực
 
     @Column(length = 200, nullable = false)
     private String name; // Tên khu vực (VD: Huyện A, Quận B)
