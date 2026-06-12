@@ -63,7 +63,7 @@ public class CustomerRecordService {
                                                DebtStatusEnum debtStatus,
                                                Long assignedUserId,
                                                LocalDate billPrintedDate,
-                                               String search, Pageable pageable) {
+                                               String subscriberNumber, String customerName, String fullAddress, Pageable pageable) {
         Instant startOfDay = null;
         Instant endOfDay = null;
         if (billPrintedDate != null) {
@@ -76,11 +76,11 @@ public class CustomerRecordService {
         if (currentUser.getRole() == RoleEnum.MANAGER || currentUser.getRole() == RoleEnum.ADMIN) {
             return recordRepository.searchAll(
                 periodId, regionId, collectionStatus, debtStatus, assignedUserId,
-                startOfDay, endOfDay, search, pageable);
+                startOfDay, endOfDay, subscriberNumber, customerName, fullAddress, pageable);
         } else {
             return recordRepository.searchByConsultant(
                 currentUser.getId(), periodId, collectionStatus, debtStatus,
-                startOfDay, endOfDay, search, pageable);
+                startOfDay, endOfDay, subscriberNumber, customerName, fullAddress, pageable);
         }
     }
 
@@ -199,7 +199,7 @@ public class CustomerRecordService {
     @org.springframework.transaction.annotation.Transactional
     public int bulkMarkDebtWithFilter(User currentUser, Long periodId, CollectionStatusEnum collectionStatus,
                                       DebtStatusEnum debtStatus, Long assignedUserId,
-                                      LocalDate billPrintedDate, String search) {
+                                      LocalDate billPrintedDate, String subscriberNumber, String customerName, String fullAddress) {
         Instant startOfDay = null;
         Instant endOfDay = null;
         if (billPrintedDate != null) {
@@ -210,9 +210,9 @@ public class CustomerRecordService {
         List<Long> ids;
         Long regionId = currentUser.getRole() == RoleEnum.ADMIN ? null : (currentUser.getRegion() != null ? currentUser.getRegion().getId() : null);
         if (currentUser.getRole() == RoleEnum.MANAGER || currentUser.getRole() == RoleEnum.ADMIN) {
-            ids = recordRepository.findAllIdsAll(periodId, regionId, collectionStatus, debtStatus, assignedUserId, startOfDay, endOfDay, search);
+            ids = recordRepository.findAllIdsAll(periodId, regionId, collectionStatus, debtStatus, assignedUserId, startOfDay, endOfDay, subscriberNumber, customerName, fullAddress);
         } else {
-            ids = recordRepository.findAllIdsByConsultant(currentUser.getId(), periodId, collectionStatus, debtStatus, startOfDay, endOfDay, search);
+            ids = recordRepository.findAllIdsByConsultant(currentUser.getId(), periodId, collectionStatus, debtStatus, startOfDay, endOfDay, subscriberNumber, customerName, fullAddress);
         }
 
         if (ids.isEmpty()) return 0;
@@ -237,7 +237,7 @@ public class CustomerRecordService {
     @org.springframework.transaction.annotation.Transactional
     public int bulkPayWithFilter(User currentUser, Long periodId, CollectionStatusEnum collectionStatus,
                                  DebtStatusEnum debtStatus, Long assignedUserId,
-                                 LocalDate billPrintedDate, String search) {
+                                 LocalDate billPrintedDate, String subscriberNumber, String customerName, String fullAddress) {
         Instant startOfDay = null;
         Instant endOfDay = null;
         if (billPrintedDate != null) {
@@ -248,9 +248,9 @@ public class CustomerRecordService {
         List<Long> ids;
         Long regionId = currentUser.getRole() == RoleEnum.ADMIN ? null : (currentUser.getRegion() != null ? currentUser.getRegion().getId() : null);
         if (currentUser.getRole() == RoleEnum.MANAGER || currentUser.getRole() == RoleEnum.ADMIN) {
-            ids = recordRepository.findAllIdsAll(periodId, regionId, collectionStatus, debtStatus, assignedUserId, startOfDay, endOfDay, search);
+            ids = recordRepository.findAllIdsAll(periodId, regionId, collectionStatus, debtStatus, assignedUserId, startOfDay, endOfDay, subscriberNumber, customerName, fullAddress);
         } else {
-            ids = recordRepository.findAllIdsByConsultant(currentUser.getId(), periodId, collectionStatus, debtStatus, startOfDay, endOfDay, search);
+            ids = recordRepository.findAllIdsByConsultant(currentUser.getId(), periodId, collectionStatus, debtStatus, startOfDay, endOfDay, subscriberNumber, customerName, fullAddress);
         }
 
         if (ids.isEmpty()) return 0;
@@ -345,10 +345,10 @@ public class CustomerRecordService {
     }
 
     public byte[] exportExcel(User currentUser, Long periodId, CollectionStatusEnum collectionStatus,
-                              DebtStatusEnum debtStatus, Long assignedUserId, LocalDate billPrintedDate, String search) {
+                              DebtStatusEnum debtStatus, Long assignedUserId, LocalDate billPrintedDate, String subscriberNumber, String customerName, String fullAddress) {
         // Lấy tất cả records dựa theo bộ lọc (không phân trang) bằng cách gọi search với size max
         Page<CustomerBillingRecord> pageResult = search(currentUser, periodId, collectionStatus, debtStatus,
-            assignedUserId, billPrintedDate, search, org.springframework.data.domain.PageRequest.of(0, Integer.MAX_VALUE));
+            assignedUserId, billPrintedDate, subscriberNumber, customerName, fullAddress, org.springframework.data.domain.PageRequest.of(0, Integer.MAX_VALUE));
         
         List<CustomerBillingRecord> records = pageResult.getContent();
         

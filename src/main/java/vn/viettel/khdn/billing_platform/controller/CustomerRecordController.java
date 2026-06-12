@@ -83,7 +83,9 @@ public class CustomerRecordController {
             @RequestParam(value = "debtStatus", required = false) DebtStatusEnum debtStatus,
             @RequestParam(value = "assignedUserId", required = false) Long assignedUserId,
             @RequestParam(value = "billPrintedDate", required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate billPrintedDate,
-            @RequestParam(value = "search", required = false) String search,
+            @RequestParam(value = "subscriberNumber", required = false) String subscriberNumber,
+            @RequestParam(value = "customerName", required = false) String customerName,
+            @RequestParam(value = "address", required = false) String address,
             @RequestParam(value = "page", defaultValue = "0") int page,
             @RequestParam(value = "size", defaultValue = "20") int size) {
 
@@ -91,7 +93,7 @@ public class CustomerRecordController {
         Long resolvedPeriodId = resolvePeriodId(periodId, month, year);
         Page<CustomerBillingRecord> records = recordService.search(
                 currentUser, resolvedPeriodId, collectionStatus, debtStatus, assignedUserId,
-                billPrintedDate, search,
+                billPrintedDate, subscriberNumber, customerName, address,
                 PageRequest.of(page, size, Sort.by("createdAt").descending()));
 
         return ResponseEntity.ok(records.map(recordService::toDTO));
@@ -110,12 +112,14 @@ public class CustomerRecordController {
             @RequestParam(value = "debtStatus", required = false) DebtStatusEnum debtStatus,
             @RequestParam(value = "assignedUserId", required = false) Long assignedUserId,
             @RequestParam(value = "billPrintedDate", required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate billPrintedDate,
-            @RequestParam(value = "search", required = false) String search) {
+            @RequestParam(value = "subscriberNumber", required = false) String subscriberNumber,
+            @RequestParam(value = "customerName", required = false) String customerName,
+            @RequestParam(value = "address", required = false) String address) {
 
         User currentUser = getCurrentUser();
         Long resolvedPeriodId = resolvePeriodId(periodId, month, year);
         byte[] data = recordService.exportExcel(currentUser, resolvedPeriodId, collectionStatus, debtStatus, assignedUserId,
-                billPrintedDate, search);
+                billPrintedDate, subscriberNumber, customerName, address);
 
         return ResponseEntity.ok()
                 .header(org.springframework.http.HttpHeaders.CONTENT_DISPOSITION,
@@ -195,12 +199,14 @@ public class CustomerRecordController {
             @RequestParam(value = "debtStatus", required = false) DebtStatusEnum debtStatus,
             @RequestParam(value = "assignedUserId", required = false) Long assignedUserId,
             @RequestParam(value = "billPrintedDate", required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate billPrintedDate,
-            @RequestParam(value = "search", required = false) String search) {
+            @RequestParam(value = "subscriberNumber", required = false) String subscriberNumber,
+            @RequestParam(value = "customerName", required = false) String customerName,
+            @RequestParam(value = "address", required = false) String address) {
 
         User currentUser = getCurrentUser();
         Long resolvedPeriodId = resolvePeriodId(periodId, month, year);
         int count = recordService.bulkMarkDebtWithFilter(currentUser, resolvedPeriodId, collectionStatus, debtStatus,
-                assignedUserId, billPrintedDate, search);
+                assignedUserId, billPrintedDate, subscriberNumber, customerName, address);
         return ResponseEntity.ok(java.util.Map.of(
                 "message", "Đã gạch nợ thành công " + count + " bản ghi theo bộ lọc",
                 "updatedCount", count));
@@ -219,12 +225,14 @@ public class CustomerRecordController {
             @RequestParam(value = "debtStatus", required = false) DebtStatusEnum debtStatus,
             @RequestParam(value = "assignedUserId", required = false) Long assignedUserId,
             @RequestParam(value = "billPrintedDate", required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate billPrintedDate,
-            @RequestParam(value = "search", required = false) String search) {
+            @RequestParam(value = "subscriberNumber", required = false) String subscriberNumber,
+            @RequestParam(value = "customerName", required = false) String customerName,
+            @RequestParam(value = "address", required = false) String address) {
 
         User currentUser = getCurrentUser();
         Long resolvedPeriodId = resolvePeriodId(periodId, month, year);
         int count = recordService.bulkPayWithFilter(currentUser, resolvedPeriodId, collectionStatus, debtStatus, assignedUserId,
-                billPrintedDate, search);
+                billPrintedDate, subscriberNumber, customerName, address);
         return ResponseEntity.ok(java.util.Map.of(
                 "message", "Đã thanh toán thành công " + count + " bản ghi theo bộ lọc",
                 "updatedCount", count));

@@ -60,12 +60,9 @@ public interface CustomerBillingRecordRepository extends JpaRepository<CustomerB
           AND (:assignedUserId IS NULL OR c.id = :assignedUserId)
           AND (:startOfDay IS NULL OR r.billPrintedAt >= :startOfDay)
           AND (:endOfDay IS NULL OR r.billPrintedAt < :endOfDay)
-          AND (:search IS NULL OR
-               LOWER(r.customerName) LIKE LOWER(CONCAT('%', :search, '%')) OR
-               r.customerCode LIKE CONCAT('%', :search, '%') OR
-               r.subscriberNumber LIKE CONCAT('%', :search, '%') OR
-               r.phoneNumber LIKE CONCAT('%', :search, '%') OR
-               LOWER(r.fullAddress) LIKE LOWER(CONCAT('%', :search, '%')))
+          AND (:subscriberNumber IS NULL OR r.subscriberNumber LIKE CONCAT('%', :subscriberNumber, '%'))
+          AND (:customerName IS NULL OR LOWER(r.customerName) LIKE LOWER(CONCAT('%', :customerName, '%')))
+          AND (:fullAddress IS NULL OR LOWER(r.fullAddress) LIKE LOWER(CONCAT('%', :fullAddress, '%')))
         """)
     Page<CustomerBillingRecord> searchAll(
             @Param("periodId") Long periodId,
@@ -75,7 +72,9 @@ public interface CustomerBillingRecordRepository extends JpaRepository<CustomerB
             @Param("assignedUserId") Long assignedUserId,
             @Param("startOfDay") java.time.Instant startOfDay,
             @Param("endOfDay") java.time.Instant endOfDay,
-            @Param("search") String search,
+            @Param("subscriberNumber") String subscriberNumber,
+            @Param("customerName") String customerName,
+            @Param("fullAddress") String fullAddress,
             Pageable pageable);
 
     @Query("""
@@ -88,12 +87,9 @@ public interface CustomerBillingRecordRepository extends JpaRepository<CustomerB
           AND (:assignedUserId IS NULL OR c.id = :assignedUserId)
           AND (:startOfDay IS NULL OR r.billPrintedAt >= :startOfDay)
           AND (:endOfDay IS NULL OR r.billPrintedAt < :endOfDay)
-          AND (:search IS NULL OR
-               LOWER(r.customerName) LIKE LOWER(CONCAT('%', :search, '%')) OR
-               r.customerCode LIKE CONCAT('%', :search, '%') OR
-               r.subscriberNumber LIKE CONCAT('%', :search, '%') OR
-               r.phoneNumber LIKE CONCAT('%', :search, '%') OR
-               LOWER(r.fullAddress) LIKE LOWER(CONCAT('%', :search, '%')))
+          AND (:subscriberNumber IS NULL OR r.subscriberNumber LIKE CONCAT('%', :subscriberNumber, '%'))
+          AND (:customerName IS NULL OR LOWER(r.customerName) LIKE LOWER(CONCAT('%', :customerName, '%')))
+          AND (:fullAddress IS NULL OR LOWER(r.fullAddress) LIKE LOWER(CONCAT('%', :fullAddress, '%')))
         """)
     List<Long> findAllIdsAll(
             @Param("periodId") Long periodId,
@@ -103,7 +99,9 @@ public interface CustomerBillingRecordRepository extends JpaRepository<CustomerB
             @Param("assignedUserId") Long assignedUserId,
             @Param("startOfDay") java.time.Instant startOfDay,
             @Param("endOfDay") java.time.Instant endOfDay,
-            @Param("search") String search);
+            @Param("subscriberNumber") String subscriberNumber,
+            @Param("customerName") String customerName,
+            @Param("fullAddress") String fullAddress);
 
     // CONSULTANT chỉ thấy KH của mình
     @Query("""
@@ -114,12 +112,9 @@ public interface CustomerBillingRecordRepository extends JpaRepository<CustomerB
           AND (:debtStatus IS NULL OR r.debtStatus = :debtStatus)
           AND (:startOfDay IS NULL OR r.billPrintedAt >= :startOfDay)
           AND (:endOfDay IS NULL OR r.billPrintedAt < :endOfDay)
-          AND (:search IS NULL OR
-               LOWER(r.customerName) LIKE LOWER(CONCAT('%', :search, '%')) OR
-               r.customerCode LIKE CONCAT('%', :search, '%') OR
-               r.subscriberNumber LIKE CONCAT('%', :search, '%') OR
-               r.phoneNumber LIKE CONCAT('%', :search, '%') OR
-               LOWER(r.fullAddress) LIKE LOWER(CONCAT('%', :search, '%')))
+          AND (:subscriberNumber IS NULL OR r.subscriberNumber LIKE CONCAT('%', :subscriberNumber, '%'))
+          AND (:customerName IS NULL OR LOWER(r.customerName) LIKE LOWER(CONCAT('%', :customerName, '%')))
+          AND (:fullAddress IS NULL OR LOWER(r.fullAddress) LIKE LOWER(CONCAT('%', :fullAddress, '%')))
         """)
     Page<CustomerBillingRecord> searchByConsultant(
             @Param("consultantId") Long consultantId,
@@ -128,7 +123,9 @@ public interface CustomerBillingRecordRepository extends JpaRepository<CustomerB
             @Param("debtStatus") DebtStatusEnum debtStatus,
             @Param("startOfDay") java.time.Instant startOfDay,
             @Param("endOfDay") java.time.Instant endOfDay,
-            @Param("search") String search,
+            @Param("subscriberNumber") String subscriberNumber,
+            @Param("customerName") String customerName,
+            @Param("fullAddress") String fullAddress,
             Pageable pageable);
 
     @Query("""
@@ -139,12 +136,9 @@ public interface CustomerBillingRecordRepository extends JpaRepository<CustomerB
           AND (:debtStatus IS NULL OR r.debtStatus = :debtStatus)
           AND (:startOfDay IS NULL OR r.billPrintedAt >= :startOfDay)
           AND (:endOfDay IS NULL OR r.billPrintedAt < :endOfDay)
-          AND (:search IS NULL OR
-               LOWER(r.customerName) LIKE LOWER(CONCAT('%', :search, '%')) OR
-               r.customerCode LIKE CONCAT('%', :search, '%') OR
-               r.subscriberNumber LIKE CONCAT('%', :search, '%') OR
-               r.phoneNumber LIKE CONCAT('%', :search, '%') OR
-               LOWER(r.fullAddress) LIKE LOWER(CONCAT('%', :search, '%')))
+          AND (:subscriberNumber IS NULL OR r.subscriberNumber LIKE CONCAT('%', :subscriberNumber, '%'))
+          AND (:customerName IS NULL OR LOWER(r.customerName) LIKE LOWER(CONCAT('%', :customerName, '%')))
+          AND (:fullAddress IS NULL OR LOWER(r.fullAddress) LIKE LOWER(CONCAT('%', :fullAddress, '%')))
         """)
     List<Long> findAllIdsByConsultant(
             @Param("consultantId") Long consultantId,
@@ -153,7 +147,9 @@ public interface CustomerBillingRecordRepository extends JpaRepository<CustomerB
             @Param("debtStatus") DebtStatusEnum debtStatus,
             @Param("startOfDay") java.time.Instant startOfDay,
             @Param("endOfDay") java.time.Instant endOfDay,
-            @Param("search") String search);
+            @Param("subscriberNumber") String subscriberNumber,
+            @Param("customerName") String customerName,
+            @Param("fullAddress") String fullAddress);
 
     // Thống kê tiến độ theo kỳ
     @Query("""
