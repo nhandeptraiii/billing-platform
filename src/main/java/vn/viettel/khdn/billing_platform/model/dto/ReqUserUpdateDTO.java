@@ -12,7 +12,6 @@ public record ReqUserUpdateDTO(
     @Pattern(regexp = "^\\d{10}$", message = "Số điện thoại phải gồm đúng 10 chữ số")
     String phone,
 
-    @NotNull(message = "Role không được để trống")
     RoleEnum role,
 
     Long regionId

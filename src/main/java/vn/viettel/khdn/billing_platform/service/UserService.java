@@ -103,7 +103,11 @@ public class UserService {
             .orElseThrow(() -> new EntityNotFoundException("Không tìm thấy người dùng ID: " + id));
         user.setFullName(req.fullName());
         user.setPhone(req.phone());
-        user.setRole(req.role());
+        if (req.role() != null) {
+            user.setRole(req.role());
+        }
+
+        RoleEnum targetRole = user.getRole();
 
         if (currentUser.role() == RoleEnum.MANAGER) {
             Region region = regionRepository.findById(currentUser.regionId())
@@ -114,8 +118,11 @@ public class UserService {
                 Region region = regionRepository.findById(req.regionId())
                     .orElseThrow(() -> new EntityNotFoundException("Không tìm thấy khu vực ID: " + req.regionId()));
                 user.setRegion(region);
-            } else if (req.role() != RoleEnum.ADMIN) {
-                throw new IllegalArgumentException("Khu vực không được để trống khi cập nhật " + req.role());
+            } else if (targetRole != RoleEnum.ADMIN) {
+                // Giữ nguyên region cũ nếu đang có, hoặc báo lỗi nếu chưa có
+                if (user.getRegion() == null) {
+                    throw new IllegalArgumentException("Khu vực không được để trống khi cập nhật " + targetRole);
+                }
             } else {
                 user.setRegion(null);
             }
