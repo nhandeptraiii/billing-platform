@@ -24,14 +24,23 @@ public class AdminInitializer implements CommandLineRunner {
 
     @Override
     public void run(String... args) {
-        userRepository.findByUsername("admin").orElseGet(() -> {
-            User admin = new User();
-            admin.setUsername("admin");
-            admin.setFullName("System Administrator");
-            admin.setPassword(passwordEncoder.encode("123456"));
-            admin.setStatus("ACTIVE");
-            admin.setRole(RoleEnum.MANAGER);
-            return userRepository.save(admin);
-        });
+        userRepository.findByUsername("admin").ifPresentOrElse(
+            existingAdmin -> {
+                // Nếu admin đang là MANAGER (do bug cũ), nâng cấp lên ADMIN
+                if (existingAdmin.getRole() != RoleEnum.ADMIN) {
+                    existingAdmin.setRole(RoleEnum.ADMIN);
+                    userRepository.save(existingAdmin);
+                }
+            },
+            () -> {
+                User admin = new User();
+                admin.setUsername("admin");
+                admin.setFullName("System Administrator");
+                admin.setPassword(passwordEncoder.encode("123456"));
+                admin.setStatus("ACTIVE");
+                admin.setRole(RoleEnum.ADMIN);
+                userRepository.save(admin);
+            }
+        );
     }
 }
