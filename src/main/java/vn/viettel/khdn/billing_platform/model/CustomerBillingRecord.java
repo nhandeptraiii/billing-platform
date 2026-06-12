@@ -9,7 +9,6 @@ import lombok.Setter;
 import vn.viettel.khdn.billing_platform.model.enums.CollectionStatusEnum;
 import vn.viettel.khdn.billing_platform.model.enums.DebtStatusEnum;
 import vn.viettel.khdn.billing_platform.model.enums.SyncWarningEnum;
-import vn.viettel.khdn.billing_platform.model.Region;
 
 /**
  * Entity trung tâm: Bản ghi thu cước của một khách hàng trong một kỳ.
@@ -19,12 +18,12 @@ import vn.viettel.khdn.billing_platform.model.Region;
 @Setter
 @Entity
 @Table(name = "customer_billing_records", indexes = {
-    @Index(name = "idx_period_id", columnList = "billing_period_id"),
-    @Index(name = "idx_assigned_consultant", columnList = "assigned_consultant_id"),
-    @Index(name = "idx_collection_status", columnList = "collectionStatus"),
-    @Index(name = "idx_debt_status", columnList = "debtStatus"),
-    @Index(name = "idx_customer_code", columnList = "customerCode"),
-    @Index(name = "idx_subscriber_number", columnList = "subscriberNumber")
+        @Index(name = "idx_period_id", columnList = "billing_period_id"),
+        @Index(name = "idx_assigned_consultant", columnList = "assigned_consultant_id"),
+        @Index(name = "idx_collection_status", columnList = "collectionStatus"),
+        @Index(name = "idx_debt_status", columnList = "debtStatus"),
+        @Index(name = "idx_customer_code", columnList = "customerCode"),
+        @Index(name = "idx_subscriber_number", columnList = "subscriberNumber")
 })
 public class CustomerBillingRecord {
 
@@ -43,34 +42,33 @@ public class CustomerBillingRecord {
 
     // ---- Thông tin khách hàng (snapshot từ file import) ----
     @Column(length = 50)
-    private String customerCode;        // Mã KH
+    private String customerCode; // Mã KH
 
     @Column(length = 200)
-    private String customerName;        // Tên KH
+    private String customerName; // Tên KH
 
     @Column(length = 50)
-    private String subscriberNumber;    // Số TB / account
+    private String subscriberNumber; // Số TB / account
 
     @Column(length = 20)
-    private String phoneNumber;         // Số điện thoại
+    private String phoneNumber; // Số điện thoại
 
     @Column(precision = 15, scale = 0)
-    private BigDecimal amountDue;       // Số tiền phải thu
+    private BigDecimal amountDue; // Số tiền phải thu
 
     @Column(length = 500)
-    private String fullAddress;         // Địa chỉ đầy đủ
+    private String fullAddress; // Địa chỉ đầy đủ
 
     @Column(length = 200)
-    private String serviceType;         // Loại dịch vụ (VD: CƯỚC VIỄN THÔNG, KỲ HÒA ĐƠN)
+    private String serviceType; // Loại dịch vụ (VD: CƯỚC VIỄN THÔNG, KỲ HÒA ĐƠN)
 
     @Column(length = 1000)
-    private String adsContent;          // Nội dung quảng cáo
-
+    private String adsContent; // Nội dung quảng cáo
 
     // ---- Phân công ----
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "assigned_consultant_id")
-    private User assignedConsultant;    // Tư vấn viên phụ trách
+    private User assignedConsultant; // Tư vấn viên phụ trách
 
     // ---- Trạng thái thu tiền (người thu cước) ----
     @Enumerated(EnumType.STRING)
@@ -88,18 +86,18 @@ public class CustomerBillingRecord {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "collected_by_id")
-    private User collectedBy;           // Người thu tiền
+    private User collectedBy; // Người thu tiền
 
-    private Instant collectedAt;        // Thời điểm thu tiền
+    private Instant collectedAt; // Thời điểm thu tiền
 
-    private Instant billPrintedAt;      // Thời điểm in bill
+    private Instant billPrintedAt; // Thời điểm in bill
 
     // ---- Thông tin gạch nợ (điền khi bấm "Đã gạch nợ") ----
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "debt_marked_by_id")
-    private User debtMarkedBy;          // Người gạch nợ
+    private User debtMarkedBy; // Người gạch nợ
 
-    private Instant debtMarkedAt;       // Thời điểm gạch nợ
+    private Instant debtMarkedAt; // Thời điểm gạch nợ
 
     // ---- Cảnh báo đồng bộ (kết quả import đối chiếu) ----
     @Enumerated(EnumType.STRING)
@@ -107,7 +105,7 @@ public class CustomerBillingRecord {
     private SyncWarningEnum syncWarning = SyncWarningEnum.NONE;
 
     @Column(length = 500)
-    private String syncWarningNote;     // Ghi chú cảnh báo chi tiết
+    private String syncWarningNote; // Ghi chú cảnh báo chi tiết
 
     // ---- Audit ----
     private Instant createdAt;

@@ -8,6 +8,8 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
+import org.springframework.http.MediaType;
 
 import jakarta.validation.Valid;
 import java.util.Map;
@@ -126,5 +128,15 @@ public class UserController {
             @Valid @RequestBody ReqResetPasswordDTO req) {
         userService.resetPassword(id, req.newPassword());
         return ResponseEntity.ok(Map.of("message", "Đặt lại mật khẩu thành công!"));
+    }
+    @PreAuthorize("hasAnyAuthority('MANAGER', 'ADMIN')")
+    @PostMapping(value = "/import-consultants", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<Map<String, Object>> importConsultants(@RequestParam("file") MultipartFile file) {
+        ResUserDTO currentUser = getCurrentUser();
+        int count = userService.importConsultants(file, currentUser);
+        return ResponseEntity.ok(Map.of(
+            "message", "Import thành công " + count + " tư vấn viên",
+            "importedCount", count
+        ));
     }
 }

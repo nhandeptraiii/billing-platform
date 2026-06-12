@@ -9,6 +9,9 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import org.springframework.web.multipart.MultipartFile;
+import org.apache.poi.ss.usermodel.*;
+import java.io.InputStream;
 import jakarta.persistence.EntityExistsException;
 import jakarta.persistence.EntityNotFoundException;
 import vn.viettel.khdn.billing_platform.model.User;
@@ -162,6 +165,68 @@ public class UserService {
             .orElseThrow(() -> new EntityNotFoundException("Không tìm thấy người dùng ID: " + userId));
         user.setPassword(passwordEncoder.encode(newPassword));
         userRepository.save(user);
+    }
+
+    public int importConsultants(MultipartFile file, ResUserDTO currentUser) {
+        if (currentUser.role() != RoleEnum.MANAGER && currentUser.role() != RoleEnum.ADMIN) {
+            throw new IllegalArgumentException("Chỉ Quản lý hoặc Admin mới được import nhân viên");
+        }
+
+        Region region = null;
+        if (currentUser.role() == RoleEnum.MANAGER) {
+            region = regionRepository.findById(currentUser.regionId())
+                .orElseThrow(() -> new EntityNotFoundException("Không tìm thấy khu vực của Manager"));
+        }
+
+        int count = 0;
+        try (InputStream is = file.getInputStream(); Workbook workbook = WorkbookFactory.create(is)) {
+            Sheet sheet = workbook.getSheetAt(0);
+            for (int i = 1; i <= sheet.getLastRowNum(); i++) {
+                Row row = sheet.getRow(i);
+                if (row == null) continue;
+
+                String username = getCellValue(row.getCell(0));
+                String fullName = getCellValue(row.getCell(1));
+                String phone = getCellValue(row.getCell(2));
+
+                if (username.isEmpty() || fullName.isEmpty()) {
+                    continue; // Bỏ qua các dòng thiếu dữ liệu bắt buộc
+                }
+
+                if (userRepository.existsByUsername(username)) {
+                    continue; // Bỏ qua user đã tồn tại
+                }
+
+                User user = new User();
+                user.setUsername(username);
+                user.setFullName(fullName);
+                user.setPhone(phone);
+                user.setPassword(passwordEncoder.encode("123456"));
+                user.setRole(RoleEnum.CONSULTANT);
+                user.setStatus("ACTIVE");
+
+                if (region != null) {
+                    user.setRegion(region); // Manager import -> gán khu vực của Manager
+                } else {
+                    user.setRegion(null); // Admin import -> Tạm thời không có khu vực
+                }
+
+                userRepository.save(user);
+                count++;
+            }
+        } catch (Exception e) {
+            throw new RuntimeException("Lỗi đọc file Excel: " + e.getMessage(), e);
+        }
+        return count;
+    }
+
+    private String getCellValue(Cell cell) {
+        if (cell == null) return "";
+        return switch (cell.getCellType()) {
+            case STRING -> cell.getStringCellValue().trim();
+            case NUMERIC -> String.valueOf((long) cell.getNumericCellValue());
+            default -> "";
+        };
     }
 
     private ResUserDTO convertToResUserDTO(User user) {

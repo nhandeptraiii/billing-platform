@@ -10,15 +10,14 @@ import jakarta.validation.constraints.Pattern;
 import lombok.Getter;
 import lombok.Setter;
 import vn.viettel.khdn.billing_platform.model.enums.RoleEnum;
-import vn.viettel.khdn.billing_platform.model.Region;
 
 @Getter
 @Setter
 @Entity
 @Table(name = "users", uniqueConstraints = {
-    @UniqueConstraint(columnNames = "username")
+        @UniqueConstraint(columnNames = "username")
 })
-@JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
+@JsonIgnoreProperties({ "hibernateLazyInitializer", "handler" })
 public class User {
 
     @Id
@@ -26,12 +25,10 @@ public class User {
     private Long id;
 
     @Column(length = 50, nullable = false, unique = true)
-    private String username;        // Ma nhan vien / username dang nhap
+    private String username; // Ma nhan vien / username dang nhap
 
     @Column(length = 150)
     private String fullName;
-
-
 
     @Pattern(regexp = "^\\d{10}$", message = "Số điện thoại phải gồm đúng 10 chữ số")
     @Column(length = 30)
