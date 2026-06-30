@@ -299,6 +299,23 @@ public class ImportService {
     // =========================================================================
     // LUỒNG 2: IMPORT ĐỐI CHIẾU GẠCH NỢ — Báo cáo xuất từ hệ thống Viettel
     // =========================================================================
+    /**
+     * Cấu trúc file RP2 (header thực tế ở dòng 7, data từ dòng 8):
+     *
+     * Cột A (0): STT
+     * Cột B (1): Chi nhánh
+     * Cột C (2): Ban cước
+     * Cột D (3): Tổ thu
+     * Cột E (4): Số hợp đồng       — thường là "xxxxx" (không dùng)
+     * Cột F (5): Số TB              — số thuê bao
+     * Cột G (6): Tiền trả           — numeric
+     * Cột H (7): Số lũy kế          — numeric
+     * Cột I (8): Còn nợ             — numeric
+     * Cột J (9): HT thu             — "Gach no TPP" / "Kênh thương mại điện tử" / ...
+     * Cột K (10): HT TT
+     * Cột L (11): Item no
+     * Cột M (12): Mã hợp đồng      — Mã KH Viettel (*) — dùng để match với customerCode
+     */
     public ImportResultDTO importReconciliation(MultipartFile file, Long periodId, User currentUser) {
         List<ImportResultDTO.ImportErrorRow> errors = new ArrayList<>();
         int autoUpdatedCount = 0;
@@ -311,13 +328,17 @@ public class ImportService {
         billingPeriodRepository.findById(periodId)
             .orElseThrow(() -> new EntityNotFoundException("Không tìm thấy kỳ thanh toán ID: " + periodId));
 
-        try (Workbook workbook = StreamingReader.builder().rowCacheSize(100).bufferSize(4096).open(file.getInputStream())) {
+        // Tăng buffer để xử lý file lớn (>10k dòng) không bị bỏ sót
+        try (Workbook workbook = StreamingReader.builder()
+                .rowCacheSize(200)
+                .bufferSize(65536)
+                .open(file.getInputStream())) {
             Sheet sheet = workbook.getSheetAt(0);
             
             boolean foundHeader = false;
 
             for (Row row : sheet) {
-                if (row == null || isRowEmpty(row)) continue;
+                if (row == null || isRowEmptyForReconciliation(row)) continue;
                 
                 if (!foundHeader) {
                     String firstCell = getCellString(row, 0).trim().toUpperCase();
@@ -330,26 +351,36 @@ public class ImportService {
                 int currentRowNum = row.getRowNum() + 1;
 
                 try {
-                    String subscriberNum = getCellString(row, 5);
+                    // Cột M (index 12): Mã hợp đồng Viettel — match với customerCode
+                    String contractCode  = getCellString(row, 12).trim();
+                    // Cột J (index 9): HT thu — xác định gạch nợ hay chưa
                     String htThu         = getCellString(row, 9).toLowerCase().trim();
 
-                    if (subscriberNum.isBlank()) continue; 
+                    if (contractCode.isBlank()) {
+                        // Fallback: nếu không có mã HĐ thì bỏ qua dòng này
+                        continue;
+                    }
+
+                    // Mã hợp đồng trong file RP2 là số thực (VD: 3.20224299E8 → 320224299)
+                    // getCellString đã xử lý NUMERIC → long string nên cần normalize
+                    String normalizedCode = normalizeContractCode(contractCode);
 
                     boolean fileIsMarked = htThu.contains("gach no") || htThu.contains("gạch nợ");
 
+                    // Match theo Mã hợp đồng (cột M) ↔ Mã KH (customerCode)
                     CustomerBillingRecord record = recordRepository
-                        .findBySubscriberNumberAndBillingPeriodId(subscriberNum, periodId)
+                        .findByCustomerCodeAndBillingPeriodId(normalizedCode, periodId)
                         .orElse(null);
 
                     if (record != null && currentUser.getRole() == vn.viettel.khdn.billing_platform.model.enums.RoleEnum.MANAGER) {
                         if (record.getRegion() == null || currentUser.getRegion() == null || !record.getRegion().getId().equals(currentUser.getRegion().getId())) {
-                            record = null; // Prevent updating record from another region
+                            record = null; // Không cho cập nhật record của cụm khác
                         }
                     }
 
                     if (record == null) {
                         errors.add(new ImportResultDTO.ImportErrorRow(currentRowNum,
-                            "Không tìm thấy KH có Số TB '" + subscriberNum + "' trong kỳ."));
+                            "Không tìm thấy KH có Mã hợp đồng '" + normalizedCode + "' trong kỳ."));
                         continue;
                     }
                     
@@ -413,6 +444,23 @@ public class ImportService {
                                    autoUpdatedCount, warningCount, null, errors);
     }
 
+    /**
+     * Chuẩn hóa mã hợp đồng từ file RP2.
+     * File Viettel lưu dạng số thực: 3.20224299E8 → "320224299"
+     * Hoặc đã là chuỗi nguyên: "644976020" → "644976020"
+     */
+    private String normalizeContractCode(String raw) {
+        if (raw == null || raw.isBlank()) return "";
+        try {
+            // Thử parse số khoa học (scientific notation) → long
+            double d = Double.parseDouble(raw);
+            return String.valueOf((long) d);
+        } catch (NumberFormatException e) {
+            // Không phải số → trả về nguyên
+            return raw.trim();
+        }
+    }
+
     // =========================================================================
     // HELPERS
     // =========================================================================
@@ -420,14 +468,33 @@ public class ImportService {
     private boolean isRowEmpty(Row row) {
         for (int c = 0; c < 15; c++) { 
             Cell cell = row.getCell(c);
-            if (cell != null && cell.getCellType() != CellType.BLANK) {
-                String val = cell.getStringCellValue();
-                if (val != null && !val.trim().isEmpty()) {
-                    return false;
+            if (cell == null || cell.getCellType() == CellType.BLANK) continue;
+            // NUMERIC cell không có getStringCellValue() — kiểm tra theo type
+            switch (cell.getCellType()) {
+                case NUMERIC -> { return false; }
+                case BOOLEAN -> { return false; }
+                case STRING -> {
+                    String val = cell.getStringCellValue();
+                    if (val != null && !val.trim().isEmpty()) return false;
                 }
+                default -> { /* FORMULA, ERROR, BLANK — bỏ qua */ }
             }
         }
         return true;
+    }
+
+    /**
+     * Kiểm tra dòng trống cho file đối chiếu RP2.
+     * Dòng có dữ liệu luôn có STT (cột A) là số nguyên hoặc chuỗi.
+     */
+    private boolean isRowEmptyForReconciliation(Row row) {
+        Cell cell = row.getCell(0);
+        if (cell == null || cell.getCellType() == CellType.BLANK) return true;
+        return switch (cell.getCellType()) {
+            case NUMERIC -> false; // STT là số → có dữ liệu
+            case STRING -> cell.getStringCellValue().trim().isEmpty();
+            default -> true;
+        };
     }
 
     private String getCellString(Row row, int col) {
