@@ -225,6 +225,15 @@ public class ImportService {
                                 "Không tìm thấy nhân viên với username: " + consultantUsername));
                             continue;
                         }
+                        // Kiểm tra tư vấn viên phải thuộc cùng cụm (region) với Manager đang import
+                        boolean sameRegion = createdBy.getRegion() != null
+                            && consultant.getRegion() != null
+                            && createdBy.getRegion().getId().equals(consultant.getRegion().getId());
+                        if (!sameRegion) {
+                            errors.add(new ImportResultDTO.ImportErrorRow(currentRowNum,
+                                "Nhân viên '" + consultantUsername + "' không thuộc cụm của bạn, không thể import"));
+                            continue;
+                        }
                     }
 
                     String managerUsername = getCellString(row, 9);
