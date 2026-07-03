@@ -345,19 +345,27 @@ public class ImportService {
             Sheet sheet = workbook.getSheetAt(0);
 
             for (Row row : sheet) {
-                if (row == null || isRowEmptyForReconciliation(row)) continue;
+                if (row == null) continue;
 
+                // Tìm header: dòng nào có cột A = "STT" (kiểm tra bằng getCellString
+                // để tránh phụ thuộc vào cell type — StreamingReader trả về STRING cho shared string)
                 if (!foundHeader) {
-                    if (getCellString(row, 0).trim().equalsIgnoreCase("STT")) {
+                    String firstCell = getCellString(row, 0).trim();
+                    if (firstCell.equalsIgnoreCase("STT")) {
                         foundHeader = true;
                     }
                     continue;
                 }
 
+                // Lấy Mã hợp đồng (cột M, index 12) — đây là key duy nhất cần thiết
+                // Không dùng isRowEmptyForReconciliation vì nó check cột A (STT) theo cell type,
+                // dễ bị sai với StreamingReader khi STT là shared string (type='s')
                 String contractCode = getCellString(row, 12).trim();
-                if (contractCode.isBlank()) continue;
+                if (contractCode.isBlank()) continue; // Dòng không có Mã HĐ → bỏ qua
 
                 String normalizedCode = normalizeContractCode(contractCode);
+                if (normalizedCode.isBlank()) continue;
+
                 String htThu = getCellString(row, 9).toLowerCase().trim();
                 boolean isGachNo = htThu.contains("gach no") || htThu.contains("gạch nợ");
 
@@ -503,19 +511,10 @@ public class ImportService {
         return true;
     }
 
-    /**
-     * Kiểm tra dòng trống cho file đối chiếu RP2.
-     * Dòng có dữ liệu luôn có STT (cột A) là số nguyên hoặc chuỗi.
-     */
-    private boolean isRowEmptyForReconciliation(Row row) {
-        Cell cell = row.getCell(0);
-        if (cell == null || cell.getCellType() == CellType.BLANK) return true;
-        return switch (cell.getCellType()) {
-            case NUMERIC -> false; // STT là số → có dữ liệu
-            case STRING -> cell.getStringCellValue().trim().isEmpty();
-            default -> true;
-        };
-    }
+    // isRowEmptyForReconciliation đã bị loại bỏ:
+    // Phương pháp check cột A (STT) theo cell type không đáng tin cậy với StreamingReader
+    // vì STT trong file Viettel là shared string (type='s'), dễ bị trả về rỗng.
+    // Thay bằng: check trực tiếp cột M (Mã HĐ) trong vòng lặp pass 1.
 
     private String getCellString(Row row, int col) {
         Cell cell = row.getCell(col);
