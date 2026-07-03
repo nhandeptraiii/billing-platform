@@ -262,13 +262,14 @@ public class CustomerRecordController {
             @RequestParam("file") MultipartFile file,
             @RequestParam(value = "periodId", required = false) Long periodId,
             @RequestParam(value = "month", required = false) Integer month,
-            @RequestParam(value = "year", required = false) Integer year) {
+            @RequestParam(value = "year", required = false) Integer year,
+            @RequestParam(value = "dryRun", defaultValue = "false") boolean dryRun) {
         Long resolvedPeriodId = resolvePeriodId(periodId, month, year);
         if (resolvedPeriodId == -1L) {
             return ResponseEntity.badRequest().build();
         }
         User currentUser = getCurrentUser();
-        return ResponseEntity.ok(importService.importReconciliation(file, resolvedPeriodId, currentUser));
+        return ResponseEntity.ok(importService.importReconciliation(file, resolvedPeriodId, currentUser, dryRun));
     }
 
     @PreAuthorize("hasAnyAuthority('MANAGER', 'ADMIN')")

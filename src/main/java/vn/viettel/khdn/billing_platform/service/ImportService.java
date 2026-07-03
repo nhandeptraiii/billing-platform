@@ -37,6 +37,42 @@ public class ImportService {
         this.userRepository = userRepository;
     }
 
+    private String normalizeSubscriberNumber(String raw) {
+        if (raw == null || raw.isBlank()) return "";
+        return raw.trim();
+    }
+
+    private record ReconciliationKey(String customerCode, String subscriberNumber) {}
+
+    private static class ReconciliationGroup {
+        private final int firstRowNumber;
+        private int rowCount = 0;
+        private boolean hasRemainingDebtValue = false;
+        private boolean hasRemainingDebt = false;
+        private boolean hasPositivePayment = false;
+
+        private ReconciliationGroup(int firstRowNumber) {
+            this.firstRowNumber = firstRowNumber;
+        }
+
+        private void addRow(BigDecimal paidAmount, String remainingDebtRaw, BigDecimal remainingDebt) {
+            rowCount++;
+            if (paidAmount != null && paidAmount.compareTo(BigDecimal.ZERO) > 0) {
+                hasPositivePayment = true;
+            }
+            if (remainingDebtRaw != null && !remainingDebtRaw.isBlank()) {
+                hasRemainingDebtValue = true;
+            }
+            if (remainingDebt != null && remainingDebt.compareTo(BigDecimal.ZERO) > 0) {
+                hasRemainingDebt = true;
+            }
+        }
+
+        private boolean isCleared() {
+            return hasPositivePayment && hasRemainingDebtValue && !hasRemainingDebt;
+        }
+    }
+
     // =========================================================================
     // TEMPLATE GENERATION
     // =========================================================================
@@ -323,6 +359,10 @@ public class ImportService {
      *           → Không N+1 (tránh chậm), không load all (tránh OOM)
      */
     public ImportResultDTO importReconciliation(MultipartFile file, Long periodId, User currentUser) {
+        return importReconciliation(file, periodId, currentUser, false);
+    }
+
+    public ImportResultDTO importReconciliation(MultipartFile file, Long periodId, User currentUser, boolean dryRun) {
         List<ImportResultDTO.ImportErrorRow> errors = new ArrayList<>();
         int autoUpdatedCount = 0;
         int warningCount     = 0;
@@ -330,12 +370,10 @@ public class ImportService {
         billingPeriodRepository.findById(periodId)
             .orElseThrow(() -> new EntityNotFoundException("Không tìm thấy kỳ thanh toán ID: " + periodId));
 
-        // ── PASS 1: Đọc toàn bộ file, gom theo Mã HĐ ──────────────────────────
-        // Map nhẹ: key = Mã HĐ (String), value = true nếu có BẤT KỲ dòng nào là gạch nợ
-        java.util.LinkedHashMap<String, Boolean> gachNoMap  = new java.util.LinkedHashMap<>();
-        // Lưu số dòng đầu tiên gặp mỗi Mã HĐ (để báo lỗi)
-        java.util.Map<String, Integer>           firstRowMap = new java.util.HashMap<>();
-        java.util.Map<String, Integer>           rowCountMap = new java.util.HashMap<>();
+        // ── PASS 1: Đọc toàn bộ file, gom theo Mã HĐ + Số TB ──────────────────
+        // Một nhóm được coi là đã gạch nợ khi có tiền trả và không còn nợ.
+        java.util.LinkedHashMap<ReconciliationKey, ReconciliationGroup> groups = new java.util.LinkedHashMap<>();
+        // Lưu số dòng đầu tiên gặp mỗi cặp key để báo lỗi.
         boolean foundHeader = false;
         int totalInputRows = 0;
 
@@ -367,14 +405,13 @@ public class ImportService {
                 String normalizedCode = normalizeContractCode(contractCode);
                 if (normalizedCode.isBlank()) continue;
 
-                totalInputRows++;
-                String htThu = getCellString(row, 9).toLowerCase().trim();
-                boolean isGachNo = htThu.contains("gach no") || htThu.contains("gạch nợ");
+                String subscriberNumber = normalizeSubscriberNumber(getCellString(row, 5));
+                if (subscriberNumber.isBlank()) continue;
 
-                // OR-merge: chỉ cần 1 dòng gạch nợ → cả Mã HĐ được coi là gạch nợ
-                gachNoMap.merge(normalizedCode, isGachNo, (existing, newVal) -> existing || newVal);
-                firstRowMap.putIfAbsent(normalizedCode, row.getRowNum() + 1);
-                rowCountMap.merge(normalizedCode, 1, Integer::sum);
+                totalInputRows++;
+                ReconciliationKey key = new ReconciliationKey(normalizedCode, subscriberNumber);
+                ReconciliationGroup group = groups.computeIfAbsent(key, k -> new ReconciliationGroup(row.getRowNum() + 1));
+                group.addRow(getCellBigDecimal(row, 6), getCellString(row, 8), getCellBigDecimal(row, 8));
             }
         } catch (Exception e) {
             throw new IllegalArgumentException("Không thể đọc file Excel: " + e.getMessage());
@@ -392,32 +429,44 @@ public class ImportService {
         Long currentUserRegionId = (currentUser.getRegion() != null) ? currentUser.getRegion().getId() : null;
         boolean isManager = currentUser.getRole() == vn.viettel.khdn.billing_platform.model.enums.RoleEnum.MANAGER;
 
-        List<String> allCodes = new ArrayList<>(gachNoMap.keySet());
+        List<String> allCodes = groups.keySet().stream()
+            .map(ReconciliationKey::customerCode)
+            .distinct()
+            .toList();
         int failedRowCount = 0;
 
         for (int i = 0; i < allCodes.size(); i += CHUNK_SIZE) {
             List<String> chunk = allCodes.subList(i, Math.min(i + CHUNK_SIZE, allCodes.size()));
+            java.util.Set<String> chunkCodes = new java.util.HashSet<>(chunk);
 
             // 1 câu SELECT IN cho cả batch → không N+1, không OOM
             List<CustomerBillingRecord> dbRecords =
                 recordRepository.findAllByCustomerCodeInAndBillingPeriodId(chunk, periodId);
 
-            // Group DB records theo customerCode (1 KH có thể nhiều dịch vụ)
-            java.util.Map<String, List<CustomerBillingRecord>> byCode = new java.util.HashMap<>();
+            // Group DB records theo cùng key với file RP2.
+            java.util.Map<ReconciliationKey, List<CustomerBillingRecord>> byKey = new java.util.HashMap<>();
             for (CustomerBillingRecord r : dbRecords) {
-                byCode.computeIfAbsent(r.getCustomerCode(), k -> new ArrayList<>()).add(r);
+                ReconciliationKey key = new ReconciliationKey(
+                    normalizeContractCode(r.getCustomerCode()),
+                    normalizeSubscriberNumber(r.getSubscriberNumber()));
+                byKey.computeIfAbsent(key, k -> new ArrayList<>()).add(r);
             }
 
-            // Xử lý logic cho từng Mã HĐ trong chunk
-            for (String code : chunk) {
-                boolean fileIsMarked  = gachNoMap.get(code);
-                int     rowNum        = firstRowMap.getOrDefault(code, 0);
-                List<CustomerBillingRecord> records = byCode.getOrDefault(code, java.util.Collections.emptyList());
+            // Xử lý từng cặp Mã HĐ + Số TB trong chunk.
+            for (java.util.Map.Entry<ReconciliationKey, ReconciliationGroup> entry : groups.entrySet()) {
+                ReconciliationKey key = entry.getKey();
+                if (!chunkCodes.contains(key.customerCode())) continue;
+
+                ReconciliationGroup group = entry.getValue();
+                boolean fileIsCleared = group.isCleared();
+                int rowNum = group.firstRowNumber;
+                List<CustomerBillingRecord> records = byKey.getOrDefault(key, java.util.Collections.emptyList());
 
                 if (records.isEmpty()) {
                     errors.add(new ImportResultDTO.ImportErrorRow(rowNum,
-                        "Không tìm thấy KH có Mã hợp đồng '" + code + "' trong kỳ."));
-                    failedRowCount += rowCountMap.getOrDefault(code, 1);
+                        "Không tìm thấy KH có Mã hợp đồng '" + key.customerCode() +
+                        "' và Số TB '" + key.subscriberNumber() + "' trong kỳ."));
+                    failedRowCount += group.rowCount;
                     continue;
                 }
 
@@ -435,37 +484,44 @@ public class ImportService {
 
                 if (allowedRecords.isEmpty()) {
                     errors.add(new ImportResultDTO.ImportErrorRow(rowNum,
-                        "KH có Mã hợp đồng '" + code + "' thuộc cụm khác, bạn không có quyền cập nhật."));
-                    failedRowCount += rowCountMap.getOrDefault(code, 1);
+                        "KH có Mã hợp đồng '" + key.customerCode() + "' và Số TB '" +
+                        key.subscriberNumber() + "' thuộc cụm khác, bạn không có quyền cập nhật."));
+                    failedRowCount += group.rowCount;
                     continue;
                 }
 
                 for (CustomerBillingRecord record : allowedRecords) {
                     boolean updated = false;
-                    if (fileIsMarked) {
+                    if (fileIsCleared) {
                         if (record.getDebtStatus() != DebtStatusEnum.DA_GACH_NO) {
-                            record.setDebtStatus(DebtStatusEnum.DA_GACH_NO);
-                            record.setDebtMarkedAt(Instant.now());
-                            record.setSyncWarning(SyncWarningEnum.NONE);
-                            record.setSyncWarningNote(null);
-                            updated = true;
                             autoUpdatedCount++;
+                            if (!dryRun) {
+                                record.setDebtStatus(DebtStatusEnum.DA_GACH_NO);
+                                record.setDebtMarkedAt(Instant.now());
+                                record.setSyncWarning(SyncWarningEnum.NONE);
+                                record.setSyncWarningNote(null);
+                                updated = true;
+                            }
                         }
                     } else {
                         if (record.getDebtStatus() == DebtStatusEnum.DA_GACH_NO) {
-                            record.setSyncWarning(SyncWarningEnum.INCONSISTENT);
-                            record.setSyncWarningNote("Hệ thống ghi 'Đã gạch nợ' nhưng báo cáo Viettel chưa ghi nhận.");
-                            updated = true;
                             warningCount++;
+                            if (!dryRun) {
+                                record.setSyncWarning(SyncWarningEnum.INCONSISTENT);
+                                record.setSyncWarningNote("Hệ thống ghi 'Đã gạch nợ' nhưng báo cáo Viettel chưa ghi nhận.");
+                                updated = true;
+                            }
                         } else if (record.getCollectionStatus() == CollectionStatusEnum.DA_THANH_TOAN) {
-                            record.setSyncWarning(SyncWarningEnum.COLLECTED_NOT_MARKED);
-                            record.setSyncWarningNote("Đã thu tiền và in bill nhưng chưa gạch nợ trên hệ thống Viettel.");
-                            updated = true;
                             warningCount++;
+                            if (!dryRun) {
+                                record.setSyncWarning(SyncWarningEnum.COLLECTED_NOT_MARKED);
+                                record.setSyncWarningNote("Đã thu tiền và in bill nhưng chưa gạch nợ trên hệ thống Viettel.");
+                                updated = true;
+                            }
                         }
                     }
 
-                    if (updated) {
+                    if (updated && !dryRun) {
                         saveBuffer.add(record);
                         if (saveBuffer.size() >= SAVE_BATCH) {
                             recordRepository.saveAll(saveBuffer);
@@ -478,7 +534,7 @@ public class ImportService {
         }
 
         // Flush phần còn lại
-        if (!saveBuffer.isEmpty()) {
+        if (!dryRun && !saveBuffer.isEmpty()) {
             recordRepository.saveAll(saveBuffer);
         }
 
@@ -550,7 +606,7 @@ public class ImportService {
         return switch (cell.getCellType()) {
             case NUMERIC -> BigDecimal.valueOf(cell.getNumericCellValue());
             case STRING  -> {
-                try { yield new BigDecimal(cell.getStringCellValue().replaceAll("[^\\d.]", "").trim()); }
+                try { yield new BigDecimal(cell.getStringCellValue().replaceAll("[^\\d.-]", "").trim()); }
                 catch (Exception e) { yield BigDecimal.ZERO; }
             }
             default -> BigDecimal.ZERO;
