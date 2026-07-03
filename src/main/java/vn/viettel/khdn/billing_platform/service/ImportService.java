@@ -3,7 +3,12 @@ package vn.viettel.khdn.billing_platform.service;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
 
 import org.apache.poi.ss.usermodel.*;
 import org.springframework.stereotype.Service;
@@ -206,8 +211,11 @@ public class ImportService {
         
         List<CustomerBillingRecord> batchRecords = new ArrayList<>();
         int BATCH_SIZE = 500;
+        Map<String, BillingPeriod> periodCache = new HashMap<>();
+        Map<String, Optional<User>> userCache = new HashMap<>();
+        Set<User> consultantsToUpdate = new HashSet<>();
 
-        try (Workbook workbook = StreamingReader.builder().rowCacheSize(100).bufferSize(4096).open(file.getInputStream())) {
+        try (Workbook workbook = StreamingReader.builder().rowCacheSize(200).bufferSize(65536).open(file.getInputStream())) {
             Sheet sheet = workbook.getSheetAt(0);
             
             for (Row row : sheet) {
@@ -250,19 +258,22 @@ public class ImportService {
                         continue;
                     }
 
-                    BillingPeriod period = billingPeriodRepository
-                        .findByMonthAndYear(month, year)
-                        .orElseGet(() -> {
-                            BillingPeriod bp = new BillingPeriod();
-                            bp.setMonth(month);
-                            bp.setYear(year);
-                            bp.setCreatedBy(createdBy);
-                            return billingPeriodRepository.save(bp);
-                        });
+                    String periodKey = month + "/" + year;
+                    BillingPeriod period = periodCache.computeIfAbsent(periodKey, key ->
+                        billingPeriodRepository.findByMonthAndYear(month, year)
+                            .orElseGet(() -> {
+                                BillingPeriod bp = new BillingPeriod();
+                                bp.setMonth(month);
+                                bp.setYear(year);
+                                bp.setCreatedBy(createdBy);
+                                return billingPeriodRepository.save(bp);
+                            }));
 
                     User consultant = null;
                     if (!consultantUsername.isBlank()) {
-                        consultant = userRepository.findByUsername(consultantUsername).orElse(null);
+                        consultant = userCache
+                            .computeIfAbsent(consultantUsername, userRepository::findByUsername)
+                            .orElse(null);
                         if (consultant == null) {
                             errors.add(new ImportResultDTO.ImportErrorRow(currentRowNum,
                                 "Không tìm thấy nhân viên với username: " + consultantUsername));
@@ -281,11 +292,13 @@ public class ImportService {
 
                     String managerUsername = getCellString(row, 9);
                     if (consultant != null && !managerUsername.isBlank()) {
-                        User manager = userRepository.findByUsername(managerUsername).orElse(null);
+                        User manager = userCache
+                            .computeIfAbsent(managerUsername, userRepository::findByUsername)
+                            .orElse(null);
                         if (manager != null) {
                             if (consultant.getManager() == null || !consultant.getManager().getId().equals(manager.getId())) {
                                 consultant.setManager(manager);
-                                userRepository.save(consultant);
+                                consultantsToUpdate.add(consultant);
                             }
                         }
                     }
@@ -323,6 +336,10 @@ public class ImportService {
             
             if (!batchRecords.isEmpty()) {
                 recordRepository.saveAll(batchRecords);
+            }
+
+            if (!consultantsToUpdate.isEmpty()) {
+                userRepository.saveAll(consultantsToUpdate);
             }
             
         } catch (Exception e) {
