@@ -325,7 +325,6 @@ public class ImportService {
     public ImportResultDTO importReconciliation(MultipartFile file, Long periodId, User currentUser) {
         List<ImportResultDTO.ImportErrorRow> errors = new ArrayList<>();
         int autoUpdatedCount = 0;
-        int validCount       = 0;
         int warningCount     = 0;
 
         billingPeriodRepository.findById(periodId)
@@ -336,7 +335,9 @@ public class ImportService {
         java.util.LinkedHashMap<String, Boolean> gachNoMap  = new java.util.LinkedHashMap<>();
         // Lưu số dòng đầu tiên gặp mỗi Mã HĐ (để báo lỗi)
         java.util.Map<String, Integer>           firstRowMap = new java.util.HashMap<>();
+        java.util.Map<String, Integer>           rowCountMap = new java.util.HashMap<>();
         boolean foundHeader = false;
+        int totalInputRows = 0;
 
         try (Workbook workbook = StreamingReader.builder()
                 .rowCacheSize(200)
@@ -366,12 +367,14 @@ public class ImportService {
                 String normalizedCode = normalizeContractCode(contractCode);
                 if (normalizedCode.isBlank()) continue;
 
+                totalInputRows++;
                 String htThu = getCellString(row, 9).toLowerCase().trim();
                 boolean isGachNo = htThu.contains("gach no") || htThu.contains("gạch nợ");
 
                 // OR-merge: chỉ cần 1 dòng gạch nợ → cả Mã HĐ được coi là gạch nợ
                 gachNoMap.merge(normalizedCode, isGachNo, (existing, newVal) -> existing || newVal);
                 firstRowMap.putIfAbsent(normalizedCode, row.getRowNum() + 1);
+                rowCountMap.merge(normalizedCode, 1, Integer::sum);
             }
         } catch (Exception e) {
             throw new IllegalArgumentException("Không thể đọc file Excel: " + e.getMessage());
@@ -390,6 +393,7 @@ public class ImportService {
         boolean isManager = currentUser.getRole() == vn.viettel.khdn.billing_platform.model.enums.RoleEnum.MANAGER;
 
         List<String> allCodes = new ArrayList<>(gachNoMap.keySet());
+        int failedRowCount = 0;
 
         for (int i = 0; i < allCodes.size(); i += CHUNK_SIZE) {
             List<String> chunk = allCodes.subList(i, Math.min(i + CHUNK_SIZE, allCodes.size()));
@@ -413,6 +417,7 @@ public class ImportService {
                 if (records.isEmpty()) {
                     errors.add(new ImportResultDTO.ImportErrorRow(rowNum,
                         "Không tìm thấy KH có Mã hợp đồng '" + code + "' trong kỳ."));
+                    failedRowCount += rowCountMap.getOrDefault(code, 1);
                     continue;
                 }
 
@@ -431,15 +436,14 @@ public class ImportService {
                 if (allowedRecords.isEmpty()) {
                     errors.add(new ImportResultDTO.ImportErrorRow(rowNum,
                         "KH có Mã hợp đồng '" + code + "' thuộc cụm khác, bạn không có quyền cập nhật."));
+                    failedRowCount += rowCountMap.getOrDefault(code, 1);
                     continue;
                 }
 
                 for (CustomerBillingRecord record : allowedRecords) {
                     boolean updated = false;
                     if (fileIsMarked) {
-                        if (record.getDebtStatus() == DebtStatusEnum.DA_GACH_NO) {
-                            validCount++;
-                        } else {
+                        if (record.getDebtStatus() != DebtStatusEnum.DA_GACH_NO) {
                             record.setDebtStatus(DebtStatusEnum.DA_GACH_NO);
                             record.setDebtMarkedAt(Instant.now());
                             record.setSyncWarning(SyncWarningEnum.NONE);
@@ -478,8 +482,7 @@ public class ImportService {
             recordRepository.saveAll(saveBuffer);
         }
 
-        int total = autoUpdatedCount + validCount + warningCount + errors.size();
-        return new ImportResultDTO(total, validCount + autoUpdatedCount, errors.size(),
+        return new ImportResultDTO(totalInputRows, totalInputRows - failedRowCount, failedRowCount,
                                    autoUpdatedCount, warningCount, null, errors);
     }
 
