@@ -1,10 +1,12 @@
 package vn.viettel.khdn.billing_platform.service;
 
 import java.io.ByteArrayOutputStream;
+import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
 import java.util.List;
 
 import org.apache.poi.ss.usermodel.Row;
@@ -49,6 +51,22 @@ public class CustomerRecordService {
         this.storeConfigRepository = storeConfigRepository;
         this.billingPeriodRepository = billingPeriodRepository;
         this.userRepository = userRepository;
+    }
+
+    private boolean hasEnoughCollectedAmount(CustomerBillingRecord record) {
+        BigDecimal collectedAmount = record.getCollectedAmount();
+        if (collectedAmount == null) return false;
+        BigDecimal amountDue = record.getAmountDue() != null ? record.getAmountDue() : BigDecimal.ZERO;
+        return collectedAmount.compareTo(amountDue) >= 0;
+    }
+
+    private boolean canBulkMarkDebt(CustomerBillingRecord record, User currentUser, Long regionId) {
+        if (currentUser.getRole() == RoleEnum.ADMIN) return true;
+        if (currentUser.getRole() == RoleEnum.MANAGER) {
+            return record.getRegion() != null && regionId != null && regionId.equals(record.getRegion().getId());
+        }
+        return record.getAssignedConsultant() != null
+            && record.getAssignedConsultant().getId().equals(currentUser.getId());
     }
 
     /**
@@ -172,6 +190,9 @@ public class CustomerRecordService {
         if (record.getDebtStatus() == DebtStatusEnum.DA_GACH_NO) {
             throw new IllegalStateException("Bản ghi này đã được gạch nợ rồi.");
         }
+        if (!hasEnoughCollectedAmount(record)) {
+            throw new IllegalStateException("Không thể gạch nợ vì số tiền đã thu nhỏ hơn tổng cước.");
+        }
 
         record.setDebtStatus(DebtStatusEnum.DA_GACH_NO);
         record.setDebtMarkedBy(currentUser);
@@ -189,11 +210,27 @@ public class CustomerRecordService {
     @org.springframework.transaction.annotation.Transactional
     public int markDebtByPeriod(Long periodId, User currentUser) {
         Long regionId = currentUser.getRole() == RoleEnum.ADMIN ? null : (currentUser.getRegion() != null ? currentUser.getRegion().getId() : null);
-        if (currentUser.getRole() == RoleEnum.MANAGER || currentUser.getRole() == RoleEnum.ADMIN) {
-            return recordRepository.markAllDebtByPeriodId(periodId, currentUser, Instant.now(), regionId);
-        } else {
-            return recordRepository.markAllDebtByPeriodIdAndConsultant(periodId, currentUser, Instant.now(), currentUser.getId());
+        List<CustomerBillingRecord> records = recordRepository.findAllByBillingPeriodId(periodId);
+        List<CustomerBillingRecord> changedRecords = new ArrayList<>();
+        Instant now = Instant.now();
+
+        for (CustomerBillingRecord record : records) {
+            if (!canBulkMarkDebt(record, currentUser, regionId)) continue;
+            if (record.getDebtStatus() == DebtStatusEnum.DA_GACH_NO) continue;
+            if (!hasEnoughCollectedAmount(record)) continue;
+
+            record.setDebtStatus(DebtStatusEnum.DA_GACH_NO);
+            record.setDebtMarkedBy(currentUser);
+            record.setDebtMarkedAt(now);
+            record.setSyncWarning(SyncWarningEnum.NONE);
+            record.setSyncWarningNote(null);
+            changedRecords.add(record);
         }
+
+        if (!changedRecords.isEmpty()) {
+            recordRepository.saveAll(changedRecords);
+        }
+        return changedRecords.size();
     }
 
     @org.springframework.transaction.annotation.Transactional
@@ -218,20 +255,24 @@ public class CustomerRecordService {
         if (ids.isEmpty()) return 0;
 
         List<CustomerBillingRecord> records = recordRepository.findAllById(ids);
-        int updatedCount = 0;
+        List<CustomerBillingRecord> changedRecords = new ArrayList<>();
         Instant now = Instant.now();
         for (CustomerBillingRecord record : records) {
+            if (!canBulkMarkDebt(record, currentUser, regionId)) continue;
+            if (!hasEnoughCollectedAmount(record)) continue;
             if (record.getDebtStatus() != DebtStatusEnum.DA_GACH_NO) {
                 record.setDebtStatus(DebtStatusEnum.DA_GACH_NO);
                 record.setDebtMarkedBy(currentUser);
                 record.setDebtMarkedAt(now);
                 record.setSyncWarning(SyncWarningEnum.NONE);
                 record.setSyncWarningNote(null);
-                updatedCount++;
+                changedRecords.add(record);
             }
         }
-        recordRepository.saveAll(records);
-        return updatedCount;
+        if (!changedRecords.isEmpty()) {
+            recordRepository.saveAll(changedRecords);
+        }
+        return changedRecords.size();
     }
 
     @org.springframework.transaction.annotation.Transactional

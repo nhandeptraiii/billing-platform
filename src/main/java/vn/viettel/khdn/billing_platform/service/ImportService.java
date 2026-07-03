@@ -47,9 +47,9 @@ public class ImportService {
     private static class ReconciliationGroup {
         private final int firstRowNumber;
         private int rowCount = 0;
+        private BigDecimal totalPaidAmount = BigDecimal.ZERO;
         private boolean hasRemainingDebtValue = false;
         private boolean hasRemainingDebt = false;
-        private boolean hasPositivePayment = false;
 
         private ReconciliationGroup(int firstRowNumber) {
             this.firstRowNumber = firstRowNumber;
@@ -57,8 +57,8 @@ public class ImportService {
 
         private void addRow(BigDecimal paidAmount, String remainingDebtRaw, BigDecimal remainingDebt) {
             rowCount++;
-            if (paidAmount != null && paidAmount.compareTo(BigDecimal.ZERO) > 0) {
-                hasPositivePayment = true;
+            if (paidAmount != null) {
+                totalPaidAmount = totalPaidAmount.add(paidAmount);
             }
             if (remainingDebtRaw != null && !remainingDebtRaw.isBlank()) {
                 hasRemainingDebtValue = true;
@@ -68,8 +68,15 @@ public class ImportService {
             }
         }
 
-        private boolean isCleared() {
-            return hasPositivePayment && hasRemainingDebtValue && !hasRemainingDebt;
+        private boolean isClearedFor(BigDecimal amountDue) {
+            BigDecimal expectedAmount = amountDue != null ? amountDue : BigDecimal.ZERO;
+            if (!hasRemainingDebtValue || hasRemainingDebt) {
+                return false;
+            }
+            if (expectedAmount.compareTo(BigDecimal.ZERO) <= 0) {
+                return true;
+            }
+            return totalPaidAmount.compareTo(expectedAmount) >= 0;
         }
     }
 
@@ -458,7 +465,6 @@ public class ImportService {
                 if (!chunkCodes.contains(key.customerCode())) continue;
 
                 ReconciliationGroup group = entry.getValue();
-                boolean fileIsCleared = group.isCleared();
                 int rowNum = group.firstRowNumber;
                 List<CustomerBillingRecord> records = byKey.getOrDefault(key, java.util.Collections.emptyList());
 
@@ -492,6 +498,7 @@ public class ImportService {
 
                 for (CustomerBillingRecord record : allowedRecords) {
                     boolean updated = false;
+                    boolean fileIsCleared = group.isClearedFor(record.getAmountDue());
                     if (fileIsCleared) {
                         if (record.getDebtStatus() != DebtStatusEnum.DA_GACH_NO) {
                             autoUpdatedCount++;
@@ -505,10 +512,14 @@ public class ImportService {
                         }
                     } else {
                         if (record.getDebtStatus() == DebtStatusEnum.DA_GACH_NO) {
+                            autoUpdatedCount++;
                             warningCount++;
                             if (!dryRun) {
+                                record.setDebtStatus(DebtStatusEnum.CHUA_GACH_NO);
+                                record.setDebtMarkedBy(null);
+                                record.setDebtMarkedAt(null);
                                 record.setSyncWarning(SyncWarningEnum.INCONSISTENT);
-                                record.setSyncWarningNote("Hệ thống ghi 'Đã gạch nợ' nhưng báo cáo Viettel chưa ghi nhận.");
+                                record.setSyncWarningNote("Báo cáo Viettel còn nợ hoặc tổng tiền trả chưa đủ tổng cước, đã hạ trạng thái gạch nợ.");
                                 updated = true;
                             }
                         } else if (record.getCollectionStatus() == CollectionStatusEnum.DA_THANH_TOAN) {
