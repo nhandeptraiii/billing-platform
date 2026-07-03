@@ -416,14 +416,25 @@ public class ImportService {
                     continue;
                 }
 
-                for (CustomerBillingRecord record : records) {
-                    // MANAGER chỉ được cập nhật record của cụm mình
+                // Lọc ra các record mà user hiện tại có quyền cập nhật (nếu là MANAGER thì chỉ record thuộc cụm mình)
+                List<CustomerBillingRecord> allowedRecords = new ArrayList<>();
+                for (CustomerBillingRecord r : records) {
                     if (isManager && currentUserRegionId != null) {
-                        if (record.getRegion() == null || !currentUserRegionId.equals(record.getRegion().getId())) {
-                            continue; // Bỏ qua record cụm khác
+                        if (r.getRegion() != null && currentUserRegionId.equals(r.getRegion().getId())) {
+                            allowedRecords.add(r);
                         }
+                    } else {
+                        allowedRecords.add(r);
                     }
+                }
 
+                if (allowedRecords.isEmpty()) {
+                    errors.add(new ImportResultDTO.ImportErrorRow(rowNum,
+                        "KH có Mã hợp đồng '" + code + "' thuộc cụm khác, bạn không có quyền cập nhật."));
+                    continue;
+                }
+
+                for (CustomerBillingRecord record : allowedRecords) {
                     boolean updated = false;
                     if (fileIsMarked) {
                         if (record.getDebtStatus() == DebtStatusEnum.DA_GACH_NO) {
