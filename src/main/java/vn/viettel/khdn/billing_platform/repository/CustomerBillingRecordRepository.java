@@ -1,5 +1,6 @@
 package vn.viettel.khdn.billing_platform.repository;
 
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 
@@ -23,6 +24,15 @@ public interface CustomerBillingRecordRepository extends JpaRepository<CustomerB
     // Tìm theo số TB + kỳ (backup key khi import đối chiếu)
     Optional<CustomerBillingRecord> findBySubscriberNumberAndBillingPeriodId(
             String subscriberNumber, Long billingPeriodId);
+
+    // Chunked IN query: lấy records theo batch Mã KH — tránh N+1 mà không OOM
+    // Gọi theo từng batch 500 mã, không load toàn bộ vào RAM một lần
+    List<CustomerBillingRecord> findAllByCustomerCodeInAndBillingPeriodId(
+            Collection<String> customerCodes, Long billingPeriodId);
+
+    // Bulk load toàn bộ records của 1 kỳ (dùng khi import đối chiếu — tránh N+1 query)
+    // 1 câu SELECT thay vì N câu, sau đó group trong memory
+    List<CustomerBillingRecord> findAllByBillingPeriodId(Long billingPeriodId);
 
     // Scheduler cuối ngày: tìm bản ghi DA_THANH_TOAN nhưng chưa gạch nợ
     List<CustomerBillingRecord> findByBillingPeriodIdAndCollectionStatusAndDebtStatus(

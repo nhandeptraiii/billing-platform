@@ -315,77 +315,108 @@ public class ImportService {
      * Cột K (10): HT TT
      * Cột L (11): Item no
      * Cột M (12): Mã hợp đồng      — Mã KH Viettel (*) — dùng để match với customerCode
+     *
+     * CHIẾN LƯỢC XỬ LÝ (2-pass + chunked IN query):
+     *   Pass 1: Stream toàn bộ file → Map<MãHĐ, isGachedNo> (chỉ lưu String+Boolean, ~1MB)
+     *           + Map<MãHĐ, rowNumber> (để log lỗi)
+     *   Pass 2: Chia Mã HĐ thành batch CHUNK_SIZE → SELECT IN (batch) → xử lý → save → next
+     *           → Không N+1 (tránh chậm), không load all (tránh OOM)
      */
     public ImportResultDTO importReconciliation(MultipartFile file, Long periodId, User currentUser) {
         List<ImportResultDTO.ImportErrorRow> errors = new ArrayList<>();
         int autoUpdatedCount = 0;
         int validCount       = 0;
         int warningCount     = 0;
-        
-        List<CustomerBillingRecord> batchRecords = new ArrayList<>();
-        int BATCH_SIZE = 500;
 
         billingPeriodRepository.findById(periodId)
             .orElseThrow(() -> new EntityNotFoundException("Không tìm thấy kỳ thanh toán ID: " + periodId));
 
-        // Tăng buffer để xử lý file lớn (>10k dòng) không bị bỏ sót
+        // ── PASS 1: Đọc toàn bộ file, gom theo Mã HĐ ──────────────────────────
+        // Map nhẹ: key = Mã HĐ (String), value = true nếu có BẤT KỲ dòng nào là gạch nợ
+        java.util.LinkedHashMap<String, Boolean> gachNoMap  = new java.util.LinkedHashMap<>();
+        // Lưu số dòng đầu tiên gặp mỗi Mã HĐ (để báo lỗi)
+        java.util.Map<String, Integer>           firstRowMap = new java.util.HashMap<>();
+        boolean foundHeader = false;
+
         try (Workbook workbook = StreamingReader.builder()
                 .rowCacheSize(200)
                 .bufferSize(65536)
                 .open(file.getInputStream())) {
             Sheet sheet = workbook.getSheetAt(0);
-            
-            boolean foundHeader = false;
 
             for (Row row : sheet) {
                 if (row == null || isRowEmptyForReconciliation(row)) continue;
-                
+
                 if (!foundHeader) {
-                    String firstCell = getCellString(row, 0).trim().toUpperCase();
-                    if (firstCell.equals("STT")) {
+                    if (getCellString(row, 0).trim().equalsIgnoreCase("STT")) {
                         foundHeader = true;
                     }
                     continue;
                 }
-                
-                int currentRowNum = row.getRowNum() + 1;
 
-                try {
-                    // Cột M (index 12): Mã hợp đồng Viettel — match với customerCode
-                    String contractCode  = getCellString(row, 12).trim();
-                    // Cột J (index 9): HT thu — xác định gạch nợ hay chưa
-                    String htThu         = getCellString(row, 9).toLowerCase().trim();
+                String contractCode = getCellString(row, 12).trim();
+                if (contractCode.isBlank()) continue;
 
-                    if (contractCode.isBlank()) {
-                        // Fallback: nếu không có mã HĐ thì bỏ qua dòng này
-                        continue;
-                    }
+                String normalizedCode = normalizeContractCode(contractCode);
+                String htThu = getCellString(row, 9).toLowerCase().trim();
+                boolean isGachNo = htThu.contains("gach no") || htThu.contains("gạch nợ");
 
-                    // Mã hợp đồng trong file RP2 là số thực (VD: 3.20224299E8 → 320224299)
-                    // getCellString đã xử lý NUMERIC → long string nên cần normalize
-                    String normalizedCode = normalizeContractCode(contractCode);
+                // OR-merge: chỉ cần 1 dòng gạch nợ → cả Mã HĐ được coi là gạch nợ
+                gachNoMap.merge(normalizedCode, isGachNo, (existing, newVal) -> existing || newVal);
+                firstRowMap.putIfAbsent(normalizedCode, row.getRowNum() + 1);
+            }
+        } catch (Exception e) {
+            throw new IllegalArgumentException("Không thể đọc file Excel: " + e.getMessage());
+        }
 
-                    boolean fileIsMarked = htThu.contains("gach no") || htThu.contains("gạch nợ");
+        if (!foundHeader) {
+            throw new IllegalArgumentException("Không tìm thấy dòng header có cột 'STT'.");
+        }
 
-                    // Match theo Mã hợp đồng (cột M) ↔ Mã KH (customerCode)
-                    CustomerBillingRecord record = recordRepository
-                        .findByCustomerCodeAndBillingPeriodId(normalizedCode, periodId)
-                        .orElse(null);
+        // ── PASS 2: Chunked IN query — xử lý từng batch 500 Mã HĐ ─────────────
+        final int CHUNK_SIZE = 500;
+        final int SAVE_BATCH = 500;
+        List<CustomerBillingRecord> saveBuffer = new ArrayList<>();
 
-                    if (record != null && currentUser.getRole() == vn.viettel.khdn.billing_platform.model.enums.RoleEnum.MANAGER) {
-                        if (record.getRegion() == null || currentUser.getRegion() == null || !record.getRegion().getId().equals(currentUser.getRegion().getId())) {
-                            record = null; // Không cho cập nhật record của cụm khác
+        Long currentUserRegionId = (currentUser.getRegion() != null) ? currentUser.getRegion().getId() : null;
+        boolean isManager = currentUser.getRole() == vn.viettel.khdn.billing_platform.model.enums.RoleEnum.MANAGER;
+
+        List<String> allCodes = new ArrayList<>(gachNoMap.keySet());
+
+        for (int i = 0; i < allCodes.size(); i += CHUNK_SIZE) {
+            List<String> chunk = allCodes.subList(i, Math.min(i + CHUNK_SIZE, allCodes.size()));
+
+            // 1 câu SELECT IN cho cả batch → không N+1, không OOM
+            List<CustomerBillingRecord> dbRecords =
+                recordRepository.findAllByCustomerCodeInAndBillingPeriodId(chunk, periodId);
+
+            // Group DB records theo customerCode (1 KH có thể nhiều dịch vụ)
+            java.util.Map<String, List<CustomerBillingRecord>> byCode = new java.util.HashMap<>();
+            for (CustomerBillingRecord r : dbRecords) {
+                byCode.computeIfAbsent(r.getCustomerCode(), k -> new ArrayList<>()).add(r);
+            }
+
+            // Xử lý logic cho từng Mã HĐ trong chunk
+            for (String code : chunk) {
+                boolean fileIsMarked  = gachNoMap.get(code);
+                int     rowNum        = firstRowMap.getOrDefault(code, 0);
+                List<CustomerBillingRecord> records = byCode.getOrDefault(code, java.util.Collections.emptyList());
+
+                if (records.isEmpty()) {
+                    errors.add(new ImportResultDTO.ImportErrorRow(rowNum,
+                        "Không tìm thấy KH có Mã hợp đồng '" + code + "' trong kỳ."));
+                    continue;
+                }
+
+                for (CustomerBillingRecord record : records) {
+                    // MANAGER chỉ được cập nhật record của cụm mình
+                    if (isManager && currentUserRegionId != null) {
+                        if (record.getRegion() == null || !currentUserRegionId.equals(record.getRegion().getId())) {
+                            continue; // Bỏ qua record cụm khác
                         }
                     }
 
-                    if (record == null) {
-                        errors.add(new ImportResultDTO.ImportErrorRow(currentRowNum,
-                            "Không tìm thấy KH có Mã hợp đồng '" + normalizedCode + "' trong kỳ."));
-                        continue;
-                    }
-                    
                     boolean updated = false;
-
                     if (fileIsMarked) {
                         if (record.getDebtStatus() == DebtStatusEnum.DA_GACH_NO) {
                             validCount++;
@@ -410,33 +441,22 @@ public class ImportService {
                             warningCount++;
                         }
                     }
-                    
+
                     if (updated) {
-                        batchRecords.add(record);
-                        if (batchRecords.size() >= BATCH_SIZE) {
-                            recordRepository.saveAll(batchRecords);
-                            batchRecords.clear();
+                        saveBuffer.add(record);
+                        if (saveBuffer.size() >= SAVE_BATCH) {
+                            recordRepository.saveAll(saveBuffer);
+                            saveBuffer.clear();
                         }
                     }
-
-                } catch (Exception e) {
-                    errors.add(new ImportResultDTO.ImportErrorRow(currentRowNum,
-                        "Lỗi xử lý dòng: " + e.getMessage()));
                 }
             }
-            
-            if (!batchRecords.isEmpty()) {
-                recordRepository.saveAll(batchRecords);
-            }
-            
-            if (!foundHeader) {
-                throw new IllegalArgumentException("Không tìm thấy dòng header có cột 'STT'.");
-            }
-            
-        } catch (IllegalArgumentException e) {
-            throw e;
-        } catch (Exception e) {
-            throw new IllegalArgumentException("Không thể đọc file Excel: " + e.getMessage());
+            // Mỗi chunk xử lý xong → dbRecords được GC, không giữ RAM
+        }
+
+        // Flush phần còn lại
+        if (!saveBuffer.isEmpty()) {
+            recordRepository.saveAll(saveBuffer);
         }
 
         int total = autoUpdatedCount + validCount + warningCount + errors.size();
