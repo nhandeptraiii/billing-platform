@@ -517,11 +517,18 @@ public class ImportService {
                     boolean updated = false;
                     boolean fileIsCleared = group.isClearedFor(record.getAmountDue());
                     if (fileIsCleared) {
-                        if (record.getDebtStatus() != DebtStatusEnum.DA_GACH_NO) {
-                            autoUpdatedCount++;
+                        if (record.getDebtStatus() != DebtStatusEnum.DA_GACH_NO || record.getCollectedAmount() == null || record.getCollectedAmount().compareTo(BigDecimal.ZERO) == 0) {
+                            if (record.getDebtStatus() != DebtStatusEnum.DA_GACH_NO) {
+                                autoUpdatedCount++;
+                            }
                             if (!dryRun) {
                                 record.setDebtStatus(DebtStatusEnum.DA_GACH_NO);
-                                record.setDebtMarkedAt(Instant.now());
+                                if (record.getDebtMarkedAt() == null) {
+                                    record.setDebtMarkedAt(Instant.now());
+                                }
+                                if (record.getCollectedAmount() == null || record.getCollectedAmount().compareTo(BigDecimal.ZERO) == 0) {
+                                    record.setCollectedAmount(record.getAmountDue() != null ? record.getAmountDue() : BigDecimal.ZERO);
+                                }
                                 record.setSyncWarning(SyncWarningEnum.NONE);
                                 record.setSyncWarningNote(null);
                                 updated = true;

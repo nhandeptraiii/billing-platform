@@ -375,7 +375,7 @@ public class CustomerRecordService {
             r.getAssignedConsultant() != null ? r.getAssignedConsultant().getFullName() : null,
             r.getCollectionStatus(),
             r.getDebtStatus(),
-            r.getCollectedAmount(),
+            (r.getCollectionStatus() == CollectionStatusEnum.DA_THANH_TOAN || r.getDebtStatus() == DebtStatusEnum.DA_GACH_NO) && (r.getCollectedAmount() == null || r.getCollectedAmount().compareTo(BigDecimal.ZERO) == 0) ? (r.getAmountDue() != null ? r.getAmountDue() : BigDecimal.ZERO) : r.getCollectedAmount(),
             r.getCollectedBy() != null ? r.getCollectedBy().getFullName() : null,
             r.getCollectedAt(), r.getBillPrintedAt(),
             r.getDebtMarkedBy() != null ? r.getDebtMarkedBy().getFullName() : null,
@@ -413,7 +413,12 @@ public class CustomerRecordService {
                 row.createCell(2).setCellValue(r.getPhoneNumber() != null ? r.getPhoneNumber() : "");
                 row.createCell(3).setCellValue(r.getSubscriberNumber() != null ? r.getSubscriberNumber() : "");
                 row.createCell(4).setCellValue(r.getAmountDue() != null ? r.getAmountDue().doubleValue() : 0);
-                row.createCell(5).setCellValue(r.getCollectedAmount() != null ? r.getCollectedAmount().doubleValue() : 0);
+                
+                BigDecimal colAmt = r.getCollectedAmount();
+                if ((r.getCollectionStatus() == CollectionStatusEnum.DA_THANH_TOAN || r.getDebtStatus() == DebtStatusEnum.DA_GACH_NO) && (colAmt == null || colAmt.compareTo(BigDecimal.ZERO) == 0)) {
+                    colAmt = r.getAmountDue() != null ? r.getAmountDue() : BigDecimal.ZERO;
+                }
+                row.createCell(5).setCellValue(colAmt != null ? colAmt.doubleValue() : 0);
                 
                 String printedDate = r.getBillPrintedAt() != null ? formatter.format(r.getBillPrintedAt()) : "";
                 row.createCell(6).setCellValue(printedDate);

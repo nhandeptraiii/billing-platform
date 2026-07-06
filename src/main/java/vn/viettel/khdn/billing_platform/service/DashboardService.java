@@ -56,11 +56,17 @@ public class DashboardService {
 
             totalRecords += count;
             expectedAmount = expectedAmount.add(amtDue);
-            collectedAmount = collectedAmount.add(colAmt);
 
-            if (CollectionStatusEnum.DA_THANH_TOAN == collectionStatus) {
+            // Tính theo Phương án A: Đã in bill HOẶC Đã gạch nợ (chỉ tính 1 lần mỗi nhóm, chống double count)
+            if (CollectionStatusEnum.DA_THANH_TOAN == collectionStatus || DebtStatusEnum.DA_GACH_NO == debtStatus) {
                 collectedRecords += count;
+                if (colAmt != null && colAmt.compareTo(BigDecimal.ZERO) > 0) {
+                    collectedAmount = collectedAmount.add(colAmt);
+                } else {
+                    collectedAmount = collectedAmount.add(amtDue);
+                }
             }
+
             if (DebtStatusEnum.DA_GACH_NO == debtStatus) {
                 markedDebtRecords += count;
             }
