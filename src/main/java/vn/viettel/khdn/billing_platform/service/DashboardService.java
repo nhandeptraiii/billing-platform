@@ -57,9 +57,13 @@ public class DashboardService {
             totalRecords += count;
             expectedAmount = expectedAmount.add(amtDue);
 
-            // Tính theo Phương án A: Đã in bill HOẶC Đã gạch nợ (chỉ tính 1 lần mỗi nhóm, chống double count)
-            if (CollectionStatusEnum.DA_THANH_TOAN == collectionStatus || DebtStatusEnum.DA_GACH_NO == debtStatus) {
+            // Số lượng hồ sơ đã thu (totalCollectedRecords): CHỈ tính theo đã thu tiền / in bill
+            if (CollectionStatusEnum.DA_THANH_TOAN == collectionStatus) {
                 collectedRecords += count;
+            }
+
+            // Số tiền đã thu (totalCollectedAmount): Tính theo Đã in bill HOẶC Đã gạch nợ (không double count)
+            if (CollectionStatusEnum.DA_THANH_TOAN == collectionStatus || DebtStatusEnum.DA_GACH_NO == debtStatus) {
                 if (colAmt != null && colAmt.compareTo(BigDecimal.ZERO) > 0) {
                     collectedAmount = collectedAmount.add(colAmt);
                 } else {
