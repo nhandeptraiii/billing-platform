@@ -100,4 +100,22 @@ public class GlobalException {
 
         return ResponseEntity.badRequest().body(res);
     }
+
+    @ExceptionHandler(org.springframework.security.access.AccessDeniedException.class)
+    public ResponseEntity<RestResponse<Object>> handleAccessDenied(org.springframework.security.access.AccessDeniedException ex) {
+        RestResponse<Object> res = new RestResponse<>();
+        res.setStatusCode(HttpStatus.FORBIDDEN.value());
+        res.setError("AccessDeniedException");
+        res.setMessage("Bạn không có quyền truy cập hoặc thực hiện thao tác này");
+        return ResponseEntity.status(HttpStatus.FORBIDDEN).body(res);
+    }
+
+    @ExceptionHandler(org.springframework.web.multipart.MaxUploadSizeExceededException.class)
+    public ResponseEntity<RestResponse<Object>> handleMaxUploadSizeExceeded(org.springframework.web.multipart.MaxUploadSizeExceededException ex) {
+        RestResponse<Object> res = new RestResponse<>();
+        res.setStatusCode(HttpStatus.BAD_REQUEST.value());
+        res.setError("MaxUploadSizeExceededException");
+        res.setMessage("Dung lượng file upload vượt quá giới hạn cho phép");
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(res);
+    }
 }

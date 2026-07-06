@@ -69,14 +69,14 @@ public class BillingPeriodController {
      * File: mau_import_dau_ky.xlsx
      */
     @PostMapping("/import")
-    @PreAuthorize("hasAuthority('MANAGER')")
+    @PreAuthorize("hasAnyAuthority('MANAGER', 'ADMIN')")
     public ResponseEntity<ImportResultDTO> importStartOfPeriod(
             @RequestParam("file") MultipartFile file) {
         User currentUser = getCurrentUser();
         return ResponseEntity.ok(importService.importStartOfPeriod(file, currentUser));
     }
 
-    @PreAuthorize("hasAuthority('MANAGER')")
+    @PreAuthorize("hasAnyAuthority('MANAGER', 'ADMIN')")
     @GetMapping("/import/template")
     public ResponseEntity<byte[]> downloadImportTemplate() {
         byte[] data = importService.generateStartOfPeriodTemplate();
@@ -88,9 +88,9 @@ public class BillingPeriodController {
                 .body(data);
     }
 
-    /** PATCH /billing-periods/{id}/close — Đóng kỳ (Manager only) */
+    /** PATCH /billing-periods/{id}/close — Đóng kỳ (Manager & Admin) */
     @PatchMapping("/{id}/close")
-    @PreAuthorize("hasAuthority('MANAGER')")
+    @PreAuthorize("hasAnyAuthority('MANAGER', 'ADMIN')")
     public ResponseEntity<BillingPeriod> closePeriod(@PathVariable("id") Long id) {
         BillingPeriod period = billingPeriodRepository.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException("Không tìm thấy kỳ ID: " + id));
