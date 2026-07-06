@@ -10,6 +10,7 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/regions")
+@SuppressWarnings("null")
 public class RegionController {
 
     private final RegionRepository regionRepository;

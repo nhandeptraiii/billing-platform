@@ -31,6 +31,7 @@ import org.springframework.format.annotation.DateTimeFormat;
 
 @RestController
 @RequestMapping("/records")
+@SuppressWarnings("null")
 public class CustomerRecordController {
 
     private final CustomerRecordService recordService;

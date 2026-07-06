@@ -24,6 +24,7 @@ import java.util.List;
 @RestController
 @RequestMapping("/dashboard")
 @RequiredArgsConstructor
+@SuppressWarnings("null")
 public class DashboardController {
 
     private final DashboardService dashboardService;

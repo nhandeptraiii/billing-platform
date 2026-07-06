@@ -46,7 +46,7 @@ public interface CustomerBillingRecordRepository extends JpaRepository<CustomerB
     @Query("""
         SELECT r FROM CustomerBillingRecord r
         WHERE r.billingPeriod.id = :periodId
-          AND (:regionId IS NULL OR r.region.id = :regionId)
+          AND (cast(:regionId as Long) IS NULL OR r.region.id = :regionId)
           AND (
             (r.collectionStatus = 'DA_THANH_TOAN' AND r.debtStatus = 'CHUA_GACH_NO')
             OR r.syncWarning = 'INCONSISTENT'
@@ -64,7 +64,7 @@ public interface CustomerBillingRecordRepository extends JpaRepository<CustomerB
         SELECT r FROM CustomerBillingRecord r
         LEFT JOIN r.assignedConsultant c
         WHERE (:periodId IS NULL OR r.billingPeriod.id = :periodId)
-          AND (:regionId IS NULL OR r.region.id = :regionId)
+          AND (cast(:regionId as Long) IS NULL OR r.region.id = :regionId)
           AND (:collectionStatus IS NULL OR r.collectionStatus = :collectionStatus)
           AND (:debtStatus IS NULL OR r.debtStatus = :debtStatus)
           AND (:assignedUserId IS NULL OR c.id = :assignedUserId)
@@ -98,7 +98,7 @@ public interface CustomerBillingRecordRepository extends JpaRepository<CustomerB
         SELECT r.id FROM CustomerBillingRecord r
         LEFT JOIN r.assignedConsultant c
         WHERE (:periodId IS NULL OR r.billingPeriod.id = :periodId)
-          AND (:regionId IS NULL OR r.region.id = :regionId)
+          AND (cast(:regionId as Long) IS NULL OR r.region.id = :regionId)
           AND (:collectionStatus IS NULL OR r.collectionStatus = :collectionStatus)
           AND (:debtStatus IS NULL OR r.debtStatus = :debtStatus)
           AND (:assignedUserId IS NULL OR c.id = :assignedUserId)
@@ -194,7 +194,7 @@ public interface CustomerBillingRecordRepository extends JpaRepository<CustomerB
         SELECT r.collectionStatus, r.debtStatus, COUNT(r), SUM(r.amountDue), SUM(r.collectedAmount)
         FROM CustomerBillingRecord r
         WHERE r.billingPeriod.id = :periodId
-          AND (:regionId IS NULL OR r.region.id = :regionId)
+          AND (cast(:regionId as Long) IS NULL OR r.region.id = :regionId)
         GROUP BY r.collectionStatus, r.debtStatus
         """)
     List<Object[]> getProgressByPeriod(@Param("periodId") Long periodId, @Param("regionId") Long regionId);
@@ -218,7 +218,7 @@ public interface CustomerBillingRecordRepository extends JpaRepository<CustomerB
                         ELSE 0 END)
         FROM CustomerBillingRecord r
         WHERE r.billingPeriod.id = :periodId
-          AND (:regionId IS NULL OR r.region.id = :regionId)
+          AND (cast(:regionId as Long) IS NULL OR r.region.id = :regionId)
         GROUP BY r.assignedConsultant.id, r.assignedConsultant.fullName
         """)
     List<Object[]> getConsultantPerformanceWithTarget(@Param("periodId") Long periodId, @Param("regionId") Long regionId);
@@ -231,7 +231,7 @@ public interface CustomerBillingRecordRepository extends JpaRepository<CustomerB
         FROM CustomerBillingRecord r
         WHERE r.collectedAt >= :startOfDay AND r.collectedAt < :endOfDay
           AND r.collectionStatus = 'DA_THANH_TOAN'
-          AND (:regionId IS NULL OR r.region.id = :regionId)
+          AND (cast(:regionId as Long) IS NULL OR r.region.id = :regionId)
         GROUP BY r.assignedConsultant.id, r.assignedConsultant.fullName
         """)
     List<Object[]> getConsultantDailyStats(@Param("startOfDay") java.time.Instant startOfDay, @Param("endOfDay") java.time.Instant endOfDay, @Param("regionId") Long regionId);

@@ -21,6 +21,7 @@ import vn.viettel.khdn.billing_platform.util.SecurityUtil;
 
 @RestController
 @RequestMapping("/billing-periods")
+@SuppressWarnings("null")
 public class BillingPeriodController {
 
     private final BillingPeriodRepository billingPeriodRepository;
